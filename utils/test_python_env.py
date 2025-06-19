@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Python环境配置测试脚本
-测试Python环境是否正确配置到 D:\Dev\Python\ 下
+测试Python环境是否正确配置到 D:\1Dev\Python\ 下
 """
 
 import os
@@ -39,13 +39,13 @@ def test_environment_variables() -> List[Tuple[str, bool, str]]:
     print("\n🔧 测试环境变量...")
     
     expected_vars = {
-        "PYTHONUSERBASE": "D:\\Dev\\Python\\packages",
+        "PYTHONUSERBASE": "D:\\1Dev\\Python\\packages",
         "PIP_USER": "1",
-        "PIPX_HOME": "D:\\Dev\\Python\\pipx",
-        "PIPX_BIN_DIR": "D:\\Dev\\Python\\pipx\\bin",
-        "UV_CACHE_DIR": "D:\\Dev\\Python\\uv_cache",
-        "PIP_CACHE_DIR": "D:\\Dev\\Python\\pip_cache",
-        "WORKON_HOME": "D:\\Dev\\Python\\virtualenvs",
+        "PIPX_HOME": "D:\\1Dev\\Python\\pipx",
+        "PIPX_BIN_DIR": "D:\\1Dev\\Python\\pipx\\bin",
+        "UV_CACHE_DIR": "D:\\1Dev\\Python\\uv_cache",
+        "PIP_CACHE_DIR": "D:\\1Dev\\Python\\pip_cache",
+        "WORKON_HOME": "D:\\1Dev\\Python\\virtualenvs",
     }
     
     results = []
@@ -72,7 +72,7 @@ def test_python_site() -> List[Tuple[str, bool, str]]:
         # 测试用户基础目录
         import site
         user_base = site.getusersitepackages().replace('site-packages', '').rstrip('\\/')
-        expected_base = "D:\\Dev\\Python\\packages"
+        expected_base = "D:\\1Dev\\Python\\packages"
         
         is_correct = user_base.lower() == expected_base.lower()
         status = "✅ 正确" if is_correct else "❌ 错误"
@@ -81,7 +81,7 @@ def test_python_site() -> List[Tuple[str, bool, str]]:
         
         # 测试用户站点包目录
         user_site = site.getusersitepackages()
-        expected_site = "D:\\Dev\\Python\\packages\\Lib\\site-packages"
+        expected_site = "D:\\1Dev\\Python\\packages\\Lib\\site-packages"
         
         is_correct = user_site.lower() == expected_site.lower()
         status = "✅ 正确" if is_correct else "❌ 错误"

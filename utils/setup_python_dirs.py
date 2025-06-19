@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Python环境目录统一配置脚本
-将pip、pipx、uv等工具的缓存和安装目录统一配置到 D:\Dev\Python\ 下
+将pip、pipx、uv等工具的缓存和安装目录统一配置到 D:\1Dev\Python\ 下
 """
 
 import os
@@ -43,7 +43,7 @@ def main():
     print("=" * 50)
     
     # 基础目录
-    base_dir = "D:\\Dev\\Python"
+    base_dir = "D:\\1Dev\\Python"
     
     # 目录配置
     directories = {

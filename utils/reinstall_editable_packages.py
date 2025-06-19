@@ -5,6 +5,7 @@
 import os
 import subprocess
 import sys
+import shutil
 from pathlib import Path
 from typing import List
 
@@ -69,24 +70,118 @@ def display_projects_table(projects: List[Path]) -> None:
     
     console.print(table)
 
-def install_package(project_path: Path) -> bool:
-    """使用uv pip install -e . --system安装包"""
+def recreate_venv(project_path: Path) -> bool:
+    """删除并重新创建虚拟环境"""
+    venv_path = project_path / ".venv"
+    
     try:
-        console.print(f"[blue]正在安装: {project_path}[/blue]")
-        console.print(f"[dim]执行命令: uv pip install -e . --system[/dim]")
+        # 删除现有的虚拟环境
+        if venv_path.exists():
+            console.print(f"[yellow]删除现有虚拟环境: {venv_path}[/yellow]")
+            shutil.rmtree(venv_path)        # 创建新的虚拟环境
+        console.print(f"[blue]创建新的虚拟环境: {venv_path}[/blue]")
+        # 使用PowerShell语法
+        cmd = f'Push-Location "{project_path}"; uv venv; Pop-Location'
+        console.print(f"[dim]执行命令: {cmd}[/dim]")
         
-        # 直接执行命令，显示完整输出
         result = subprocess.run(
-            ["uv", "pip", "install", "-e", ".", "--system"],
-            cwd=project_path,
-            check=False
+            ["pwsh", "-Command", cmd],
+            check=False,
+            capture_output=True,
+            text=True
         )
         
         if result.returncode == 0:
+            console.print(f"[green]✓ 虚拟环境创建成功[/green]")
+            return True
+        else:
+            console.print(f"[red]✗ 虚拟环境创建失败: {result.stderr}[/red]")
+            return False
+            
+    except Exception as e:
+        console.print(f"[red]✗ 虚拟环境操作异常: {e}[/red]")
+        return False
+
+def install_package(project_path: Path, use_system: bool = True) -> bool:
+    """使用uv pip install -e .安装包"""
+    try:
+        console.print(f"[blue]正在安装: {project_path}[/blue]")
+        
+        # 如果是局部安装，先检查并创建虚拟环境
+        if not use_system:
+            venv_path = project_path / ".venv"
+            if not venv_path.exists():
+                console.print(f"[yellow]未找到虚拟环境，正在创建...[/yellow]")
+                if not recreate_venv(project_path):
+                    console.print(f"[red]✗ 虚拟环境创建失败，跳过该项目[/red]")
+                    return False
+        
+        # 构建命令
+        if use_system:
+            cmd = f'Push-Location "{project_path}"; uv pip install -e . --system; Pop-Location'
+        else:
+            cmd = f'Push-Location "{project_path}"; uv pip install -e .; Pop-Location'
+        
+        console.print(f"[dim]执行命令: {cmd}[/dim]")
+        
+        # 直接执行命令，显示完整输出
+        result = subprocess.run(
+            ["pwsh", "-Command", cmd],
+            check=False,
+            capture_output=True,
+            text=True
+        )
+        
+        # 检查输出中是否包含错误信息
+        has_error = False
+        if result.stderr:
+            if "No virtual environment found" in result.stderr or "error:" in result.stderr:
+                has_error = True
+        if result.stdout:
+            if "No virtual environment found" in result.stdout or "error:" in result.stdout:
+                has_error = True
+        
+        if result.returncode == 0 and not has_error:
             console.print(f"[green]✓ 成功安装: {project_path.name}[/green]")
             return True
         else:
-            console.print(f"[red]✗ 安装失败: {project_path.name} (返回码: {result.returncode})[/red]")
+            if has_error:
+                console.print(f"[red]✗ 安装失败: {project_path.name} (检测到错误信息)[/red]")
+            else:
+                console.print(f"[red]✗ 安装失败: {project_path.name} (返回码: {result.returncode})[/red]")
+            
+            # 如果是局部安装失败，尝试重新创建虚拟环境
+            if not use_system:
+                console.print(f"[yellow]检测到局部安装失败，尝试重新创建虚拟环境...[/yellow]")
+                if recreate_venv(project_path):
+                    # 重新尝试安装
+                    console.print(f"[blue]重新尝试安装: {project_path.name}[/blue]")
+                    console.print(f"[dim]执行命令: {cmd}[/dim]")
+                    
+                    retry_result = subprocess.run(
+                        ["pwsh", "-Command", cmd],
+                        check=False,
+                        capture_output=True,
+                        text=True
+                    )
+                    
+                    # 再次检查输出
+                    retry_has_error = False
+                    if retry_result.stderr and ("No virtual environment found" in retry_result.stderr or "error:" in retry_result.stderr):
+                        retry_has_error = True
+                    if retry_result.stdout and ("No virtual environment found" in retry_result.stdout or "error:" in retry_result.stdout):
+                        retry_has_error = True
+                    
+                    if retry_result.returncode == 0 and not retry_has_error:
+                        console.print(f"[green]✓ 重试成功安装: {project_path.name}[/green]")
+                        return True
+                    else:
+                        console.print(f"[red]✗ 重试后仍然失败: {project_path.name}[/red]")
+                        return False
+                else:
+                    console.print(f"[red]✗ 虚拟环境重建失败，跳过该项目[/red]")
+                    return False
+            
             return False
             
     except Exception as e:
@@ -120,12 +215,27 @@ def main():
     if not projects:
         console.print("[yellow]未找到包含pyproject.toml的项目[/yellow]")
         return
-    
     console.print(f"[green]找到 {len(projects)} 个项目[/green]")
     display_projects_table(projects)
     
+    # 选择安装方式
+    console.print("\n[bold cyan]请选择安装方式：[/bold cyan]")
+    console.print("[dim]1. 全局安装 (--system) - 安装到系统Python环境[/dim]")
+    console.print("[dim]2. 局部安装 (无--system) - 安装到当前虚拟环境[/dim]")
+    
+    install_choice = Prompt.ask(
+        "[bold green]请选择安装方式[/bold green]",
+        choices=["1", "2"],
+        default="1"
+    )
+    
+    use_system = install_choice == "1"
+    install_type = "全局安装" if use_system else "局部安装"
+    
+    console.print(f"[cyan]选择的安装方式: {install_type}[/cyan]")
+    
     # 确认是否继续
-    if not Confirm.ask("\n[bold yellow]是否继续安装所有项目？[/bold yellow]",default=True):
+    if not Confirm.ask(f"\n[bold yellow]是否继续{install_type}所有项目？[/bold yellow]", default=True):
         console.print("[yellow]取消安装[/yellow]")
         return
       # 安装所有项目
@@ -134,8 +244,7 @@ def main():
     
     for i, project in enumerate(projects, 1):
         console.print(f"[cyan]({i}/{len(projects)})[/cyan]")
-        
-        if install_package(project):
+        if install_package(project, use_system):
             successful_installs += 1
         else:
             failed_installs += 1
