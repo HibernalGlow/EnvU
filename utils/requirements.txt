@@ -1,0 +1,2 @@
+Remove-Item "C:\Users\30902\AppData\Roaming\MangaJaNaiConverterGui" -Force
+New-Item -ItemType SymbolicLink -Path "C:\Users\30902\AppData\Roaming\MangaJaNaiConverterGui" -Target "D:\1SoftLink\Roaming\MangaJaNaiConverterGui"

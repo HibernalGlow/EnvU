@@ -61,16 +61,21 @@ class SymlinkManager:
                         try:
                             total_size += os.path.getsize(filepath)
                         except (OSError, FileNotFoundError):
-                            continue
-            
+                            continue            
             return total_size / (1024 * 1024), file_count  # 转换为 MB
         except Exception as e:
             self.console.print(f"[red]计算目录大小失败: {e}[/red]")
             return 0, 0
     
     def validate_path(self, path_str: str, must_exist: bool = True) -> Optional[Path]:
-        """验证路径"""
+        """验证路径，支持带引号的路径"""
         try:
+            # 移除首尾的引号（支持单引号和双引号）
+            path_str = path_str.strip()
+            if (path_str.startswith('"') and path_str.endswith('"')) or \
+               (path_str.startswith("'") and path_str.endswith("'")):
+                path_str = path_str[1:-1]
+            
             path = Path(path_str).resolve()
             
             if must_exist and not path.exists():
@@ -91,7 +96,6 @@ class SymlinkManager:
                     cmd = f'mklink /D "{target}" "{source}"'
                 else:
                     cmd = f'mklink "{target}" "{source}"'
-                
                 result = subprocess.run(
                     cmd, 
                     shell=True, 
@@ -115,18 +119,24 @@ class SymlinkManager:
             return False
     
     def move_and_link(self, source: Path, target: Path) -> bool:
-        """移动目录并创建软链接"""
+        """移动目录并创建软链接，支持跳过失败文件"""
         try:
             # 确保目标目录的父目录存在
             target.parent.mkdir(parents=True, exist_ok=True)
             
             # 移动源目录到目标位置
             self.console.print(f"[yellow]正在移动 {source} 到 {target}...[/yellow]")
-            shutil.move(str(source), str(target))
             
-            # 创建软链接
-            self.console.print(f"[yellow]正在创建软链接...[/yellow]")
-            return self.create_symlink(target, source)
+            # 使用自定义移动函数，支持跳过失败的文件
+            success = self.move_directory_with_skip(source, target)
+            
+            if success:
+                # 创建软链接
+                self.console.print(f"[yellow]正在创建软链接...[/yellow]")
+                return self.create_symlink(target, source)
+            else:
+                self.console.print("[red]移动过程中遇到太多错误，操作失败[/red]")
+                return False
             
         except Exception as e:
             self.console.print(f"[red]移动失败: {e}[/red]")
@@ -137,6 +147,110 @@ class SymlinkManager:
                     self.console.print("[yellow]已回滚移动操作[/yellow]")
             except:
                 pass
+            return False
+    
+    def move_directory_with_skip(self, source: Path, target: Path) -> bool:
+        """移动目录，跳过无法移动的文件"""
+        failed_files = []
+        total_files = 0
+        
+        try:
+            # 首先尝试简单移动整个目录
+            shutil.move(str(source), str(target))
+            self.console.print("[green]✅ 目录移动成功[/green]")
+            return True
+        except Exception as e:
+            self.console.print(f"[yellow]⚠️  整体移动失败，尝试逐个文件移动: {e}[/yellow]")
+        
+        # 如果整体移动失败，尝试逐个文件移动
+        try:
+            # 创建目标目录
+            target.mkdir(parents=True, exist_ok=True)
+            
+            # 统计总文件数
+            for root, dirs, files in os.walk(source):
+                total_files += len(files)
+            
+            self.console.print(f"[cyan]开始逐个移动 {total_files} 个文件...[/cyan]")
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=self.console
+            ) as progress:
+                task = progress.add_task("移动文件中...", total=total_files)
+                moved_count = 0
+                
+                # 递归移动所有文件和子目录
+                for root, dirs, files in os.walk(source):
+                    # 计算相对路径
+                    rel_path = Path(root).relative_to(source)
+                    target_dir = target / rel_path
+                    
+                    # 创建目标子目录
+                    try:
+                        target_dir.mkdir(parents=True, exist_ok=True)
+                    except Exception as e:
+                        self.console.print(f"[red]创建目录失败 {target_dir}: {e}[/red]")
+                        continue
+                    
+                    # 移动文件
+                    for file in files:
+                        source_file = Path(root) / file
+                        target_file = target_dir / file
+                        
+                        try:
+                            shutil.move(str(source_file), str(target_file))
+                            moved_count += 1
+                        except Exception as e:
+                            failed_files.append((str(source_file), str(e)))
+                            self.console.print(f"[red]跳过文件 {source_file}: {e}[/red]")
+                        
+                        progress.update(task, advance=1)
+            
+            # 移动完成后，尝试删除空的源目录
+            try:
+                if source.exists():
+                    # 删除空目录
+                    for root, dirs, files in os.walk(source, topdown=False):
+                        for dir_name in dirs:
+                            dir_path = Path(root) / dir_name
+                            try:
+                                if not any(dir_path.iterdir()):  # 如果目录为空
+                                    dir_path.rmdir()
+                            except:
+                                pass
+                    
+                    # 最后删除根目录
+                    if not any(source.iterdir()):
+                        source.rmdir()
+                        self.console.print("[green]✅ 源目录已清理[/green]")
+                    else:
+                        self.console.print(f"[yellow]⚠️  源目录仍有剩余文件: {source}[/yellow]")
+            except Exception as e:
+                self.console.print(f"[yellow]清理源目录时出错: {e}[/yellow]")
+            
+            # 报告结果
+            success_rate = (moved_count / total_files) * 100 if total_files > 0 else 0
+            self.console.print(f"\n[cyan]移动完成统计:[/cyan]")
+            self.console.print(f"成功移动: {moved_count}/{total_files} 文件 ({success_rate:.1f}%)")
+            
+            if failed_files:
+                self.console.print(f"[red]失败文件数: {len(failed_files)}[/red]")
+                
+                # 显示部分失败文件（最多显示5个）
+                show_count = min(5, len(failed_files))
+                for i, (file_path, error) in enumerate(failed_files[:show_count]):
+                    self.console.print(f"  {i+1}. {Path(file_path).name}: {error}")
+                
+                if len(failed_files) > show_count:
+                    self.console.print(f"  ... 还有 {len(failed_files) - show_count} 个失败文件")
+            
+            # 如果成功率超过90%，认为操作成功
+            return success_rate >= 90.0
+            
+        except Exception as e:
+            self.console.print(f"[red]逐个文件移动也失败了: {e}[/red]")
             return False
     
     def show_path_info(self, path: Path):
