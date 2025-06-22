@@ -1,0 +1,26 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\*\shell\NeeView]
+@="Open with NeeView"
+"Icon"="D:\\scoop\\apps\\neeview\\current\\NeeView.exe"
+
+[HKEY_CLASSES_ROOT\*\shell\NeeView\command]
+@="\"D:\\scoop\\apps\\neeview\\current\\NeeView.exe\" \"%1\""
+
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\shell\NeeView]
+@="Open with NeeView"
+"Icon"="D:\\scoop\\apps\\neeview\\current\\NeeView.exe"
+
+[HKEY_CLASSES_ROOT\Directory\shell\NeeView\command]
+@="\"D:\\scoop\\apps\\neeview\\current\\NeeView.exe\" \"%V\""
+
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\NeeView]
+@="Open with NeeView"
+"Icon"="D:\\scoop\\apps\\neeview\\current\\NeeView.exe"
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\NeeView\command]
+@="\"D:\\scoop\\apps\\neeview\\current\\NeeView.exe\" \"%V\""
