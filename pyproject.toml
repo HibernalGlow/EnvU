@@ -1,0 +1,12 @@
+[project]
+name = "envu"
+version = "0.1.0"
+description = "Environment utilities including winget to scoop migration"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "rich",
+]
+
+[project.scripts]
+linku = "linku.__main__:main"
