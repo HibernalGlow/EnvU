@@ -18,3 +18,9 @@ link = "C:\\Users\\30902\\AppData\\Local\\Microsoft\\Edge"
 target = "D:\\1SoftLink\\AppData\\Microsoft\\Edge"
 type = "目录"
 created_at = "2025-08-26T08:14:47.615413+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\Taskfile.yml"
+target = "D:\\1VSCODE\\Projects\\LazyCommand\\EnvU\\dotfile\\Taskfile.yml"
+type = "文件"
+created_at = "2025-08-26T08:59:37.834777+00:00"

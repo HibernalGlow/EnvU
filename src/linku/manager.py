@@ -121,7 +121,19 @@ class SymlinkManager:
             return False
 
     def move_and_link(self, source: Path, target: Path) -> bool:
+        """将源（目录或文件）移动到目标，并在原位置创建软链接。"""
         try:
+            if source.is_file():
+                # 文件移动
+                from shutil import move as sh_move
+                target.parent.mkdir(parents=True, exist_ok=True)
+                self.console.print(f"[yellow]正在移动文件 {source} 到 {target}...[/yellow]")
+                sh_move(str(source), str(target))
+                self.console.print("[green]✅ 文件移动成功[/green]")
+                self.console.print(f"[yellow]正在创建软链接...[/yellow]")
+                return self.create_symlink(target, source)
+
+            # 目录移动（带跳过）
             target.parent.mkdir(parents=True, exist_ok=True)
             self.console.print(f"[yellow]正在移动 {source} 到 {target}...[/yellow]")
 
@@ -138,10 +150,11 @@ class SymlinkManager:
                 return False
         except Exception as e:
             self.console.print(f"[red]移动失败: {e}[/red]")
+            # 尝试回滚
             try:
                 if target.exists() and not source.exists():
-                    from shutil import move
-                    move(str(target), str(source))
+                    from shutil import move as sh_move
+                    sh_move(str(target), str(source))
                     self.console.print("[yellow]已回滚移动操作[/yellow]")
             except Exception:
                 pass
@@ -237,60 +250,92 @@ class SymlinkManager:
     def create_move_symlink(self):
         self.console.print("\n[bold cyan]创建软链接（移动模式）[/bold cyan]")
         while True:
-            source_str = Prompt.ask("请输入源路径（要移动的目录）")
+            source_str = Prompt.ask("请输入源路径（要移动的目录或文件）")
             source = self.validate_path(source_str, must_exist=True)
             if source:
                 break
         self.show_path_info(source)
-        if not source.is_dir():
-            self.console.print("[red]源路径必须是目录[/red]")
+        if not (source.is_dir() or source.is_file()):
+            self.console.print("[red]源路径必须是目录或文件[/red]")
             Prompt.ask("按回车继续")
             return
+        # 交互输入并解析最终目标
         while True:
-            target_str = Prompt.ask("请输入目标路径（移动到的位置）")
-            target = self.validate_path(target_str, must_exist=False)
-            if target:
-                if target.exists():
-                    self.console.print(f"[red]目标路径已存在: {target}[/red]")
-                    continue
+            target_str = Prompt.ask("请输入目标路径（移动到的位置，目录或具体文件路径）")
+            target_input = self.validate_path(target_str, must_exist=False)
+            if not target_input:
+                continue
+            final_target, err = self.resolve_move_target(source, target_input)
+            if err:
+                self.console.print(f"[red]{err}[/red]")
+                continue
+            # 预览与确认
+            self.preview_move_result(source, final_target)
+            self.console.print(f"\n[yellow]将要执行以下操作:[/yellow]")
+            self.console.print(f"1. 移动 [cyan]{source}[/cyan] 到 [cyan]{final_target}[/cyan]")
+            self.console.print(f"2. 创建软链接 [cyan]{source}[/cyan] -> [cyan]{final_target}[/cyan]")
+            if Confirm.ask("\n确认执行吗？"):
+                if self.move_and_link(source, final_target):
+                    self.console.print("[green]✅ 软链接创建成功！[/green]")
+                else:
+                    self.console.print("[red]❌ 软链接创建失败[/red]")
                 break
-        # 预览移动后的路径结构
-        self.preview_move_result(source, target)
-        self.console.print(f"\n[yellow]将要执行以下操作:[/yellow]")
-        self.console.print(f"1. 移动 [cyan]{source}[/cyan] 到 [cyan]{target}[/cyan]")
-        self.console.print(f"2. 创建软链接 [cyan]{source}[/cyan] -> [cyan]{target}[/cyan]")
-        if Confirm.ask("\n确认执行吗？"):
-            if self.move_and_link(source, target):
-                self.console.print("[green]✅ 软链接创建成功！[/green]")
-            else:
-                self.console.print("[red]❌ 软链接创建失败[/red]")
         Prompt.ask("按回车继续")
 
-    def preview_move_result(self, source: Path, target: Path, dir_sample: int = 50, file_sample: int = 50) -> None:
-        """预览移动后将在目标位置创建的完整路径（目录与文件）。
-        - 统计总目录/文件数
-        - 列出部分示例路径，避免刷屏
+    def resolve_move_target(self, source: Path, target_input: Path) -> tuple[Path, str | None]:
+        """根据源类型与输入目标求最终目标路径。
+        目录：目标必须不存在。
+        文件：
+          - 目标为已存在目录 => 目标/源文件名
+          - 目标为已存在文件 => 报错
+          - 目标不存在 => 视为最终文件路径
         """
+        if source.is_dir():
+            if target_input.exists():
+                return target_input, f"目标路径已存在: {target_input}"
+            return target_input, None
+        # 文件
+        if target_input.exists():
+            if target_input.is_dir():
+                final = target_input / source.name
+                if final.exists():
+                    return final, f"目标文件已存在: {final}"
+                return final, None
+            else:
+                return target_input, f"目标文件已存在: {target_input}"
+        return target_input, None
+
+    def preview_move_result(self, source: Path, target: Path, dir_sample: int = 50, file_sample: int = 50) -> None:
+        """预览移动后将在目标位置创建的完整路径（目录与文件）。"""
         try:
-            dir_paths = []  # 示例目录路径（目标侧）
-            file_paths = []  # 示例文件路径（目标侧）
+            if source.is_file():
+                panel = Panel.fit(
+                    Text(
+                        f"将移动文件到: {target}\n并在原位置创建软链接: {source} -> {target}",
+                        style="bold yellow",
+                    ),
+                    title="移动结果预览（文件）",
+                    border_style="yellow",
+                )
+                self.console.print(panel)
+                return
+
+            # 目录情况
+            dir_paths = []
+            file_paths = []
             total_dirs = 0
             total_files = 0
-
             for root, dirs, files in os.walk(source):
                 rel = Path(root).relative_to(source)
                 tgt_dir = target / rel
-                # 统计当前根目录（目标对应目录）
                 total_dirs += 1
                 if len(dir_paths) < dir_sample:
                     dir_paths.append(str(tgt_dir))
-                # 统计子目录（目标对应目录）
                 for d in dirs:
                     sub_dir = tgt_dir / d
                     total_dirs += 1
                     if len(dir_paths) < dir_sample:
                         dir_paths.append(str(sub_dir))
-                # 文件
                 for f in files:
                     total_files += 1
                     if len(file_paths) < file_sample:
@@ -298,16 +343,14 @@ class SymlinkManager:
 
             panel = Panel.fit(
                 Text(
-                    f"目标根目录: {target}\n"
-                    f"目录总数: {total_dirs}，文件总数: {total_files}\n",
+                    f"目标根目录: {target}\n目录总数: {total_dirs}，文件总数: {total_files}",
                     style="bold yellow",
                 ),
-                title="移动结果预览",
+                title="移动结果预览（目录）",
                 border_style="yellow",
             )
             self.console.print(panel)
 
-            # 目录示例
             dir_table = Table(title=f"将创建/出现的目录（示例，最多 {dir_sample} 条）", show_lines=False)
             dir_table.add_column("目录路径", style="cyan")
             for p in dir_paths:
@@ -316,7 +359,6 @@ class SymlinkManager:
                 dir_table.caption = f"... 以及另外 {total_dirs - len(dir_paths)} 个目录"
             self.console.print(dir_table)
 
-            # 文件示例
             file_table = Table(title=f"将移动到的文件（示例，最多 {file_sample} 条）", show_lines=False)
             file_table.add_column("文件路径", style="green")
             for p in file_paths:
