@@ -1,0 +1,21 @@
+main         https://gitee.com/scoop-installer/Main               2025/8/31 16:28:56      1403
+extras       https://gitee.com/scoop-installer/Extras                                                                             2180
+versions     https://gitee.com/scoop-installer/Versions           2025/8/31 16:38:31       510
+nirsoft      https://gitee.com/scoop-installer/Nirsoft            2025/8/28 12:45:21       289
+sysinternals https://gitee.com/scoop-installer/scoop-sysinternals 2025/5/6 10:16:49         75
+nerd-fonts   https://gitee.com/scoop-installer/scoop-nerd-fonts   2025/8/22 21:32:29       367
+nonportable  https://github.com/ScoopInstaller/Nonportable        2025/8/29 20:59:08       128
+games        https://gitee.com/scoop-installer/scoop-games        2025/8/31 16:29:24       355
+aki          https://gitee.com/scoop-installer/aki-apps           2025/8/30 20:37:54       311
+cluttered    https://gitee.com/scoop-installer/Cluttered-bucket   2025/8/22 7:10:04         66
+dorado       https://gitee.com/scoop-installer/dorado             2025/8/31 8:18:13        269
+echo         https://gitee.com/scoop-installer/echo-scoop         2025/8/30 20:46:34       102
+iszy         https://gitee.com/scoop-installer/scoop-iszy         2025/6/21 8:16:42         17
+muggle       https://gitee.com/scoop-installer/scoop-muggle       2025/8/30 16:37:16       167
+scoop-zapps  https://gitee.com/scoop-installer/scoop-zapps        2025/8/31 6:09:01        170
+scoopcn      https://gitee.com/scoop-installer/scoopcn            2025/8/28 0:41:39         30
+scoopet      https://gitee.com/scoop-installer/scoopet            2025/8/30 20:58:48        76
+sdoog        https://gitee.com/scoop-installer/sdoog              2025/8/31 16:35:52       313
+siku         https://gitee.com/scoop-installer/siku               2025/8/31 16:34:23        94
+spc          https://gitee.com/wlzwme/scoop-proxy-cn              2025/8/31 10:06:59     10548
+tomato       https://gitee.com/scoop-installer/tomato             2025/8/25 18:12:06        60

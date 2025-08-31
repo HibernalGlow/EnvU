@@ -40,6 +40,207 @@ class SymlinkManager:
         self.console = console
         self.config = ConfigStore()  # 默认包目录 linku.toml
 
+    def recover_links(self) -> None:
+        """检查 TOML 中已记录的链接，发现问题并提供修复。
+
+        处理场景：
+        - 链接缺失：创建新链接
+        - 非软链接占位：可选择重命名为 .bak 并创建链接
+        - 指向错误：删除并重新创建为正确目标
+        - 目标缺失：仅提示，无法自动修复
+        """
+        records = self.config.get_links()
+        if not records:
+            self.console.print("[yellow]尚无记录可恢复[/yellow]")
+            Prompt.ask("按回车继续")
+            return
+
+        def norm_str(p: Path) -> str:
+            s = str(p)
+            return s.lower() if os.name == 'nt' else s
+
+        def resolve_link_target(link: Path) -> Path | None:
+            try:
+                tgt = link.readlink()
+                if not tgt.is_absolute():
+                    return (link.parent / tgt)
+                return tgt
+            except Exception:
+                return None
+
+        issues: list[dict] = []
+        ok_count = 0
+        for item in records:
+            link_p = Path(item.get('link', ''))
+            target_p = Path(item.get('target', ''))
+            status = 'ok'
+            action = None  # create | replace | recreate | skip
+            note = ''
+            try:
+                link_exists = link_p.exists()
+                is_link = False
+                try:
+                    is_link = link_p.is_symlink()
+                except Exception:
+                    is_link = False
+                real_tgt = resolve_link_target(link_p) if link_exists and is_link else None
+                target_exists = target_p.exists()
+
+                if not link_exists:
+                    status = '链接缺失'
+                    if target_exists:
+                        action = 'create'
+                    else:
+                        action = 'skip'
+                        note = '目标也不存在'
+                elif not is_link:
+                    status = '不是软链接'
+                    if target_exists:
+                        action = 'replace'
+                    else:
+                        action = 'skip'
+                        note = '目标不存在，保留原文件/目录'
+                else:
+                    # 是软链接
+                    if real_tgt is None:
+                        status = '链接损坏'
+                        if target_exists:
+                            action = 'recreate'
+                        else:
+                            action = 'skip'
+                            note = '目标不存在'
+                    else:
+                        # 比较指向
+                        if norm_str(real_tgt) != norm_str(target_p):
+                            status = f'指向错误 -> {real_tgt}'
+                            if target_exists:
+                                action = 'recreate'
+                            else:
+                                action = 'skip'
+                                note = '目标不存在'
+                        else:
+                            # 指向一致
+                            if not target_exists:
+                                status = '目标缺失'
+                                action = 'skip'
+                                note = '无法自动修复'
+                            else:
+                                status = '正常'
+                                ok_count += 1
+
+                if status != '正常':
+                    issues.append({
+                        'link': link_p,
+                        'target': target_p,
+                        'status': status,
+                        'action': action,
+                        'note': note,
+                    })
+            except Exception as e:
+                issues.append({
+                    'link': link_p,
+                    'target': target_p,
+                    'status': f'检测失败: {e}',
+                    'action': 'skip',
+                    'note': '',
+                })
+
+        # 展示摘要
+        table = Table(title="恢复检查结果")
+        table.add_column("链接路径", style="cyan")
+        table.add_column("目标路径", style="green")
+        table.add_column("状态", style="yellow")
+        table.add_column("建议动作", style="magenta")
+        table.add_column("备注", style="white")
+        actionable = 0
+        for it in issues:
+            act = it['action'] or '-'
+            if act in ('create', 'replace', 'recreate'):
+                actionable += 1
+            table.add_row(str(it['link']), str(it['target']), str(it['status']), act, it['note'])
+        self.console.print(table)
+        self.console.print(f"[green]正常链接数: {ok_count}[/green]")
+
+        if actionable == 0:
+            self.console.print("[green]没有需要自动修复的项目[/green]")
+            Prompt.ask("按回车继续")
+            return
+
+        # 选择修复模式
+        mode = Prompt.ask("选择修复方式", choices=["全部", "逐项", "取消"], default="全部")
+        if mode == "取消":
+            self.console.print("[yellow]已取消修复[/yellow]")
+            Prompt.ask("按回车继续")
+            return
+
+        repaired = 0
+        failed = 0
+
+        def do_create(link_p: Path, target_p: Path) -> bool:
+            try:
+                link_p.parent.mkdir(parents=True, exist_ok=True)
+            except Exception:
+                pass
+            ok, err = os_create_symlink(target_p, link_p)
+            if not ok:
+                self.console.print(f"[red]创建失败: {link_p} -> {target_p}: {err}")
+            return ok
+
+        def ensure_removed(link_p: Path) -> bool:
+            # 尝试删除现有路径（软链或占位）
+            try:
+                if not link_p.exists():
+                    return True  # 不存在则无需处理
+                if link_p.is_symlink():
+                    ok, err = os_delete_symlink(link_p)
+                    if not ok and link_p.exists():
+                        self.console.print(f"[red]删除旧链接失败: {link_p}: {err}")
+                        return False
+                    return True
+            except Exception:
+                pass
+            # 非软链接：改名备份
+            try:
+                bak = link_p.with_suffix(link_p.suffix + ".bak")
+                idx = 1
+                while bak.exists():
+                    bak = link_p.with_suffix(link_p.suffix + f".bak{idx}")
+                    idx += 1
+                os.replace(str(link_p), str(bak))
+                self.console.print(f"[yellow]已备份原路径为: {bak}")
+                return True
+            except Exception as e:
+                self.console.print(f"[red]备份/移除原路径失败: {link_p}: {e}")
+                return False
+
+        targets = [it for it in issues if it['action'] in ('create', 'replace', 'recreate')]
+        for it in targets:
+            link_p: Path = it['link']
+            target_p: Path = it['target']
+            act = it['action']
+
+            if mode == "逐项":
+                if not Confirm.ask(f"修复 {act}: {link_p} -> {target_p} ？"):
+                    continue
+
+            if act == 'create':
+                ok = do_create(link_p, target_p)
+            elif act in ('replace', 'recreate'):
+                if ensure_removed(link_p):
+                    ok = do_create(link_p, target_p)
+                else:
+                    ok = False
+            else:
+                ok = True
+
+            if ok:
+                repaired += 1
+            else:
+                failed += 1
+
+        self.console.print(f"[bold]修复完成：成功 {repaired} 项，失败 {failed} 项。[/bold]")
+        Prompt.ask("按回车继续")
+
     # ---------- 基础 ----------
     def check_admin_privileges(self) -> bool:
         return os_is_admin()
@@ -417,8 +618,9 @@ class SymlinkManager:
             self.console.print("3. 查看路径信息")
             self.console.print("4. 查看已记录的链接（TOML）")
             self.console.print("5. 删除软链接（并同步记录）")
-            self.console.print("6. 退出")
-            choice = Prompt.ask("\n请输入选项", choices=["1", "2", "3", "4", "5", "6"], default="1")
+            self.console.print("6. 恢复/修复已记录的链接")
+            self.console.print("7. 退出")
+            choice = Prompt.ask("\n请输入选项", choices=["1", "2", "3", "4", "5", "6", "7"], default="1")
             if choice == "1":
                 self.create_move_symlink()
             elif choice == "2":
@@ -430,5 +632,7 @@ class SymlinkManager:
             elif choice == "5":
                 self.delete_symlink_interactive()
             elif choice == "6":
+                self.recover_links()
+            elif choice == "7":
                 self.console.print("[green]再见！[/green]")
                 break

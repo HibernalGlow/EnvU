@@ -13,9 +13,14 @@ except Exception:
 
 
 def main() -> None:
+    import sys
     try:
         manager = SymlinkManager()
-        manager.main_menu()
+        # 检查是否传入 --recover 参数
+        if len(sys.argv) > 1 and sys.argv[1] == "--recover":
+            manager.recover_links()
+        else:
+            manager.main_menu()
     except KeyboardInterrupt:
         console.print("\n[yellow]程序被用户中断[/yellow]")
     except Exception as e:
