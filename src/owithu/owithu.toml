@@ -1,0 +1,38 @@
+# owithu: 默认内置配置（回退使用）
+# 支持基于 Scoop 安装的软件。路径变量可使用 {scoop_root}。
+# 在仓库根目录创建 config/owithu.toml 可覆盖此配置。
+
+[vars]
+# Scoop 根目录
+scoop_root = "D:/scoop"
+
+[[entries]]
+# 唯一键，用于注册表路径名
+key = "VSCode"
+# 右键菜单显示名
+label = "Open with Code"
+# 可执行文件路径模板
+exe = "{scoop_root}/apps/vscode/current/Code.exe"
+# 适用对象：file | directory | background | all
+scope = ["file", "directory", "background"]
+# 传给命令的参数模板。%1 用于文件，%V 用于目录或背景。
+# 使用数组以避免空格转义问题
+args = ["%1"]
+# 图标路径，默认等于 exe
+icon = "{scoop_root}/apps/vscode/current/Code.exe"
+
+[[entries]]
+key = "Neeview"
+label = "Open with Neeview"
+exe = "{scoop_root}/apps/Neeview/current/Neeview.exe"
+scope = ["file", "directory", "background"]
+args = ["%1"]
+icon = "{scoop_root}/apps/Neeview/current/Neeview.exe"
+
+[[entries]]
+key = "PotPlayer"
+label = "Open with PotPlayer"
+exe = "{scoop_root}/apps/potplayer/current/PotPlayerMini64.exe"
+scope = ["file", "directory", "background"]
+args = ["%1"]
+icon = "{scoop_root}/apps/potplayer/current/PotPlayerMini64.exe"
