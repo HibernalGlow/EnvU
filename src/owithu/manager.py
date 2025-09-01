@@ -24,6 +24,8 @@ class Entry:
     args: list[str]
     icon: Optional[str]
     scope: list[Scope]
+    enabled: bool = True
+    hives: Optional[list[str]] = None  # overrides defaults when provided
 
 
 def _norm_path(p: str) -> str:
@@ -106,12 +108,17 @@ def _scoped_key_paths(entry_key: str, scope: Scope) -> list[str]:
     return paths
 
 
-def load_config(toml_path: str) -> tuple[dict, list[Entry]]:
+def load_config(toml_path: str) -> tuple[dict, dict, list[Entry]]:
     with open(toml_path, "rb") as f:
         data = tomllib.load(f)
 
     vars_map = data.get("vars", {}) or {}
     entries_data = data.get("entries", []) or []
+    defaults_data = data.get("defaults", {}) or {}
+    default_enabled: bool = bool(defaults_data.get("enabled", True))
+    default_hives = defaults_data.get("hives")
+    if default_hives is not None:
+        default_hives = [h.upper() for h in default_hives]
 
     entries: list[Entry] = []
     for e in entries_data:
@@ -121,42 +128,55 @@ def load_config(toml_path: str) -> tuple[dict, list[Entry]]:
         icon = (e.get("icon") or e["exe"]).format(**vars_map)
         args = e.get("args", [])
         scope = e.get("scope", ["file"])  # default to file only
+        enabled = bool(e.get("enabled", default_enabled))
+        hives = e.get("hives")
+        if hives is not None:
+            hives = [h.upper() for h in hives]
+            for h in hives:
+                if h not in {"HKCU", "HKCR", "HKLM"}:
+                    raise ValueError(f"Invalid hive in entry {key}: {h}")
         # Normalize paths
         exe = _norm_path(exe)
         icon = _norm_path(icon)
-        entries.append(Entry(key=key, label=label, exe=exe, args=args, icon=icon, scope=scope))
+        entries.append(Entry(key=key, label=label, exe=exe, args=args, icon=icon, scope=scope, enabled=enabled, hives=hives))
 
-    return vars_map, entries
+    return vars_map, {"enabled": default_enabled, "hives": default_hives}, entries
 
 
-def register_entries(entries: list[Entry], hive: str = "HKCU"):
-    root, base = _base_classes_path(hive)
+def register_entries(entries: list[Entry], hive: Optional[str] = None, defaults_hives: Optional[list[str]] = None):
     for e in entries:
-        for sc in e.scope:
-            for path in _scoped_key_paths(e.key, sc):
-                full = f"{base}\\{path}" if base else path
-                with _ensure_key(root, full) as h:
-                    _set_value(h, None, e.label)
-                    _set_value(h, "Icon", e.icon)
-                # command subkey
-                with _ensure_key(root, f"{full}\\command") as hc:
-                    # Replace placeholder for scope: file -> %1; others -> %V
-                    args = ["%V" if (a == "%1" and sc in {"directory", "background"}) else a for a in e.args]
-                    cmd = _build_command(e.exe, args)
-                    _set_value(hc, None, cmd)
-                console.print(f"[green]Registered[/] {e.key} -> {full}")
+        if not e.enabled:
+            continue
+        hives_to_use = [hive] if hive else (e.hives or defaults_hives or ["HKCU"])
+        for h in hives_to_use:
+            root, base = _base_classes_path(h)
+            for sc in e.scope:
+                for path in _scoped_key_paths(e.key, sc):
+                    full = f"{base}\\{path}" if base else path
+                    with _ensure_key(root, full) as hk:
+                        _set_value(hk, None, e.label)
+                        _set_value(hk, "Icon", e.icon)
+                    # command subkey
+                    with _ensure_key(root, f"{full}\\command") as hc:
+                        # Replace placeholder for scope: file -> %1; others -> %V
+                        args = ["%V" if (a == "%1" and sc in {"directory", "background"}) else a for a in e.args]
+                        cmd = _build_command(e.exe, args)
+                        _set_value(hc, None, cmd)
+                    console.print(f"[green]Registered[/] {e.key} -> [{h}] {full}")
 
 
-def unregister_entries(entries: list[Entry], hive: str = "HKCU", only_key: Optional[str] = None):
-    root, base = _base_classes_path(hive)
+def unregister_entries(entries: list[Entry], hive: Optional[str] = None, defaults_hives: Optional[list[str]] = None, only_key: Optional[str] = None):
     for e in entries:
         if only_key and e.key != only_key:
             continue
-        for sc in e.scope:
-            for path in _scoped_key_paths(e.key, sc):
-                full = f"{base}\\{path}" if base else path
-                _delete_tree(root, full)
-                console.print(f"[yellow]Removed[/] {e.key} <- {full}")
+        hives_to_use = [hive] if hive else (e.hives or defaults_hives or ["HKCU"])
+        for h in hives_to_use:
+            root, base = _base_classes_path(h)
+            for sc in e.scope:
+                for path in _scoped_key_paths(e.key, sc):
+                    full = f"{base}\\{path}" if base else path
+                    _delete_tree(root, full)
+                    console.print(f"[yellow]Removed[/] {e.key} <- [{h}] {full}")
 
 
 def preview(entries: list[Entry]):
@@ -171,11 +191,11 @@ def preview(entries: list[Entry]):
     console.print(table)
 
 
-def register_from_toml(toml_path: str, hive: str = "HKCU"):
-    _, entries = load_config(toml_path)
-    register_entries(entries, hive=hive)
+def register_from_toml(toml_path: str, hive: Optional[str] = None):
+    _, defaults, entries = load_config(toml_path)
+    register_entries(entries, hive=hive, defaults_hives=defaults.get("hives"))
 
 
-def unregister_from_toml(toml_path: str, hive: str = "HKCU", only_key: Optional[str] = None):
-    _, entries = load_config(toml_path)
-    unregister_entries(entries, hive=hive, only_key=only_key)
+def unregister_from_toml(toml_path: str, hive: Optional[str] = None, only_key: Optional[str] = None):
+    _, defaults, entries = load_config(toml_path)
+    unregister_entries(entries, hive=hive, defaults_hives=defaults.get("hives"), only_key=only_key)

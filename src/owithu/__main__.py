@@ -20,14 +20,14 @@ console = Console()
 
 
 def _default_toml() -> str:
-    # Prefer workspace config/owithu.toml, else local working dir
+    # Prefer package co-located default, then workspace config, then CWD
     candidates = [
+        # packaged default next to this __main__.py
+        Path(__file__).resolve().parent / "owithu.toml",
         # repo root (src/.. -> project root)
         Path(__file__).resolve().parents[2] / "config" / "owithu.toml",
         Path.cwd() / "config" / "owithu.toml",
         Path.cwd() / "owithu.toml",
-        # packaged default next to this __main__.py
-        Path(__file__).resolve().parent / "owithu.toml",
     ]
     for p in candidates:
         if p.exists():
@@ -43,7 +43,7 @@ def main():
 
     def add_common(p):
         p.add_argument("--config", "-c", default=_default_toml(), help="Path to owithu.toml")
-        p.add_argument("--hive", choices=["HKCU", "HKCR", "HKLM"], default="HKCU", help="Registry hive to write")
+        p.add_argument("--hive", choices=["HKCU", "HKCR", "HKLM"], default=None, help="Registry hive to write (omit to follow config)")
         p.add_argument("--interactive", "-i", action="store_true", help="Run with interactive prompts")
         p.add_argument("--yes", "-y", action="store_true", help="Assume yes for confirmations")
 
@@ -77,7 +77,7 @@ def main():
         action = Prompt.ask("选择操作", choices=["preview", "register", "unregister", "exit"], default="preview")
         if action == "exit":
             return
-        hive = Prompt.ask("选择写入的注册表 Hive", choices=["HKCU", "HKCR", "HKLM"], default="HKCU")
+        hive = Prompt.ask("选择写入的注册表 Hive (留空则按配置决定)", choices=["HKCU", "HKCR", "HKLM", ""], default="") or None
 
         if action == "preview":
             _, entries = load_config(cfg)
@@ -130,12 +130,13 @@ def main():
         if getattr(args, "interactive", False):
             _, entries = load_config(toml)
             preview(entries)
-            args.hive = Prompt.ask("选择写入的注册表 Hive", choices=["HKCU", "HKCR", "HKLM"], default=args.hive)
+            args.hive = (Prompt.ask("选择写入的注册表 Hive (留空则按配置决定)", choices=["HKCU", "HKCR", "HKLM", ""], default="") or None) if getattr(args, "interactive", False) else args.hive
             if not Confirm.ask(f"确认注册到 [bold]{args.hive}[/] ?", default=True):
                 console.print("已取消。")
                 return
         elif not getattr(args, "yes", False):
-            if not Confirm.ask(f"将注册到 [bold]{args.hive}[/]，确认继续?", default=True):
+            hive_show = args.hive or "由配置决定"
+            if not Confirm.ask(f"将注册到 [bold]{hive_show}[/]，确认继续?", default=True):
                 console.print("已取消。")
                 return
         register_from_toml(toml, hive=args.hive)
@@ -145,7 +146,7 @@ def main():
             _, entries = load_config(toml)
             keys = [e.key for e in entries]
             console.print("可用键: " + ", ".join(keys))
-            args.hive = Prompt.ask("选择目标注册表 Hive", choices=["HKCU", "HKCR", "HKLM"], default=args.hive)
+            args.hive = (Prompt.ask("选择目标注册表 Hive (留空则按配置决定)", choices=["HKCU", "HKCR", "HKLM", ""], default="") or None)
             if args.key:
                 if not Confirm.ask(f"确认从 [bold]{args.hive}[/] 移除 {args.key} ?", default=True):
                     console.print("已取消。")
