@@ -1,5 +1,18 @@
-# Scoop 旧版本清理配置文件
+# Scoop 清理工具通用配置文件
+# 此配置文件控制 scoolp clean 命令的所有子命令行为
 
+# ===== 路径配置 =====
+[paths]
+# Scoop 根目录（留空则从环境变量 SCOOP 获取）
+scoop_root = ""
+
+# 缓存目录（相对于 scoop_root，留空使用默认 cache 目录）
+cache_dir = "cache"
+
+# 备份目录名称模板（支持时间戳变量）
+backup_dir_template = "cache_backup_{timestamp}"
+
+# ===== 版本检测配置 =====
 [version_detection]
 # 版本号必须包含数字（防止误删 config、.uv 等目录）
 require_digits = true
@@ -18,10 +31,64 @@ blacklist_patterns = [
     ".*\\.old$",          # 已经标记为 .old 的目录
 ]
 
-[behavior]
-# 默认显示的条目数量
-display_limit = 30
+# ===== 缓存清理配置 =====
+[cache_cleanup]
+# 是否在列出时显示详细的包信息表格
+show_detailed_table = true
 
-# 删除操作是否需要确认
+# 列表中最多显示的包数量（0 表示不限制）
+max_list_items = 0
+
+# 备份时是否创建时间戳子目录
+use_timestamp_backup = true
+
+# 删除前预览显示的文件数量
+preview_count = 10
+
+# ===== 显示配置 =====
+[display]
+# 版本清理时默认显示的条目数量
+version_display_limit = 30
+
+# 是否使用彩色输出
+use_colors = true
+
+# 是否显示进度条
+show_progress = true
+
+# 表格样式（可选: "simple", "grid", "rounded"）
+table_style = "rounded"
+
+# ===== 行为配置 =====
+[behavior]
+# 删除操作前是否需要确认
 confirm_before_delete = true
+
+# 备份操作前是否需要确认
+confirm_before_backup = false
+
+# 使用回收站而不是永久删除
+use_recycle_bin = true
+
+# 操作失败时是否继续（false 表示遇到错误立即停止）
+continue_on_error = true
+
+# ===== 过滤配置 =====
+[filters]
+# 要排除的包名模式（正则表达式）
+excluded_packages = []
+
+# 要排除的版本模式（正则表达式）
+excluded_versions = []
+
+# 最小文件大小（字节，小于此大小的文件不显示）
+min_file_size = 0
+
+# ===== 性能配置 =====
+[performance]
+# 是否默认跳过大小计算（加快扫描速度）
+skip_size_calculation = false
+
+# 并发扫描的最大线程数（0 表示自动）
+max_workers = 0
 

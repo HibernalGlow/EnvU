@@ -35,6 +35,11 @@ app = typer.Typer(help="清理 Scoop 缓存中的过期安装包")
 
 # 默认配置
 DEFAULT_CONFIG = {
+    "paths": {
+        "scoop_root": "",
+        "cache_dir": "cache",
+        "backup_dir_template": "cache_backup_{timestamp}",
+    },
     "version_detection": {
         "require_digits": True,
         "blacklist_patterns": [
@@ -50,9 +55,32 @@ DEFAULT_CONFIG = {
             r".*\.old$",
         ]
     },
+    "cache_cleanup": {
+        "show_detailed_table": True,
+        "max_list_items": 0,
+        "use_timestamp_backup": True,
+        "preview_count": 10,
+    },
+    "display": {
+        "version_display_limit": 30,
+        "use_colors": True,
+        "show_progress": True,
+        "table_style": "rounded",
+    },
     "behavior": {
-        "display_limit": 30,
         "confirm_before_delete": True,
+        "confirm_before_backup": False,
+        "use_recycle_bin": True,
+        "continue_on_error": True,
+    },
+    "filters": {
+        "excluded_packages": [],
+        "excluded_versions": [],
+        "min_file_size": 0,
+    },
+    "performance": {
+        "skip_size_calculation": False,
+        "max_workers": 0,
     }
 }
 
@@ -357,11 +385,12 @@ def show_clean_result(result: CleanResult) -> None:
 def list_obsolete(
     path: Optional[str] = typer.Argument(
         None, 
-        help="Scoop 缓存路径 (默认使用 $SCOOP/cache)"
+        help="Scoop 缓存路径 (默认使用配置或 $SCOOP/cache)"
     ),
 ):
     """列出所有过期的安装包"""
-    cache_path = get_scoop_cache_path(path)
+    config = load_config()
+    cache_path = get_scoop_cache_path(path, config)
     
     console.print(f"[bold blue]扫描缓存目录: {cache_path}[/bold blue]\n")
     
@@ -373,11 +402,12 @@ def list_obsolete(
 def backup_obsolete(
     path: Optional[str] = typer.Argument(
         None,
-        help="Scoop 缓存路径 (默认使用 $SCOOP/cache)"
+        help="Scoop 缓存路径 (默认使用配置或 $SCOOP/cache)"
     ),
 ):
     """备份所有过期的安装包到时间戳目录"""
-    cache_path = get_scoop_cache_path(path)
+    config = load_config()
+    cache_path = get_scoop_cache_path(path, config)
     
     console.print(f"[bold blue]扫描并备份缓存目录: {cache_path}[/bold blue]\n")
     
@@ -394,7 +424,7 @@ def backup_obsolete(
 def delete_obsolete(
     path: Optional[str] = typer.Argument(
         None,
-        help="Scoop 缓存路径 (默认使用 $SCOOP/cache)"
+        help="Scoop 缓存路径 (默认使用配置或 $SCOOP/cache)"
     ),
     force: bool = typer.Option(
         False,
@@ -403,8 +433,13 @@ def delete_obsolete(
         help="跳过确认直接删除"
     ),
 ):
-    """删除所有过期的安装包"""
-    cache_path = get_scoop_cache_path(path)
+    """删除所有过期的安装包（移至回收站）"""
+    config = load_config()
+    cache_path = get_scoop_cache_path(path, config)
+    
+    # 从配置获取行为设置
+    behavior_config = config.get("behavior", {})
+    confirm_needed = behavior_config.get("confirm_before_delete", True) and not force
     
     console.print(f"[bold blue]扫描缓存目录: {cache_path}[/bold blue]\n")
     
@@ -416,8 +451,9 @@ def delete_obsolete(
     
     console.print(f"[yellow]找到 {result.clean_count} 个过期包，总大小 {format_size(result.clean_size)}[/yellow]\n")
     
-    # 显示前10个要处理的文件
-    preview_count = min(10, len(result.clean_packages))
+    # 显示前N个要处理的文件（从配置获取）
+    cache_config = config.get("cache_cleanup", {})
+    preview_count = min(cache_config.get("preview_count", 10), len(result.clean_packages))
     console.print("[dim]将移至回收站的文件 (前10个):[/dim]")
     for pkg in result.clean_packages[:preview_count]:
         console.print(f"  [dim]- {pkg.name} {pkg.version} ({format_size(pkg.size)})[/dim]")
@@ -426,7 +462,7 @@ def delete_obsolete(
         console.print(f"  [dim]... 还有 {len(result.clean_packages) - preview_count} 个文件[/dim]")
     
     # 确认操作
-    if not force:
+    if confirm_needed:
         confirm = typer.confirm(
             f"\n确定要移动这 {result.clean_count} 个文件到回收站吗？",
             default=False
@@ -598,7 +634,8 @@ def clean_versions(
         table.add_column("大小", style="white", justify="right", width=12)
     
     # 显示限制（从配置获取）
-    display_limit = config.get("behavior", {}).get("display_limit", 30)
+    display_config = config.get("display", {})
+    display_limit = display_config.get("version_display_limit", 30)
     for op in operations[:display_limit]:
         row = [
             op['app'],

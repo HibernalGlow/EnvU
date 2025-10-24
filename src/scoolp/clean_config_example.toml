@@ -1,9 +1,24 @@
-# Scoop 旧版本清理配置文件示例
+# Scoop 清理工具通用配置文件示例
 # 复制此文件为 clean_config.toml 并根据需要修改
 
+# ===== 路径配置 =====
+[paths]
+# Scoop 根目录（留空则从环境变量 SCOOP 获取）
+# 示例: "D:/scoop" 或 "/home/user/.scoop"
+scoop_root = ""
+
+# 缓存目录（相对于 scoop_root）
+# 默认为 "cache"，Scoop 会将下载的安装包存放在这里
+cache_dir = "cache"
+
+# 备份目录名称模板
+# {timestamp} 会被替换为当前时间戳，格式：YYYYMMDD_HHMMSS
+backup_dir_template = "cache_backup_{timestamp}"
+
+# ===== 版本检测配置 =====
 [version_detection]
 # 版本号必须包含数字（防止误删 config、data 等目录）
-# 设置为 true 时，只有包含数字的目录才会被认为是版本目录
+# true: 只有包含数字的目录才会被认为是版本目录
 # 例如: "1.2.3" ✓, "2024-01-01" ✓, "config" ✗, "data" ✗
 require_digits = true
 
@@ -25,14 +40,117 @@ blacklist_patterns = [
 ]
 
 # 自定义黑名单示例：
-# "^test.*",            # 所有以 test 开头的目录
-# ".*_backup$",         # 所有以 _backup 结尾的目录
-# "^(assets|resources)$",  # assets 或 resources 目录
+# "^test.*",              # 所有以 test 开头的目录
+# ".*_backup$",           # 所有以 _backup 结尾的目录
+# "^(assets|resources)$", # assets 或 resources 目录
+# "^v?\\d+\\.\\d+\\.\\d+-alpha$",  # 排除 alpha 版本
 
+# ===== 缓存清理配置 =====
+[cache_cleanup]
+# 列出时是否显示详细的包信息表格
+show_detailed_table = true
+
+# 列表中最多显示的包数量（0 表示不限制）
+# 设置此值可以限制输出，避免屏幕滚动太多
+max_list_items = 0
+
+# 备份时是否创建时间戳子目录
+# true: 每次备份创建新目录（如 cache_backup_20241024_235959）
+# false: 使用固定目录名（会覆盖之前的备份）
+use_timestamp_backup = true
+
+# 删除前预览显示的文件数量
+# 在确认删除前显示前 N 个将要删除的文件
+preview_count = 10
+
+# ===== 显示配置 =====
+[display]
+# 版本清理时默认显示的条目数量
+# 超过此数量的条目会被折叠显示为 "... 还有 N 个"
+version_display_limit = 30
+
+# 是否使用彩色输出
+# false: 纯文本输出（适合日志文件）
+use_colors = true
+
+# 是否显示进度条
+# true: 显示扫描和处理进度
+# false: 静默模式
+show_progress = true
+
+# 表格样式（Rich 库支持的样式）
+# 可选: "simple", "grid", "rounded", "heavy", "double"
+table_style = "rounded"
+
+# ===== 行为配置 =====
 [behavior]
-# 列表显示时默认显示的条目数量
-display_limit = 30
-
 # 删除操作前是否需要确认
+# true: 删除前询问用户确认
+# false: 直接删除（危险！除非你知道自己在做什么）
 confirm_before_delete = true
 
+# 备份操作前是否需要确认
+# 通常备份是安全的，所以默认不需要确认
+confirm_before_backup = false
+
+# 使用回收站而不是永久删除
+# true: 文件移至回收站，可以恢复
+# false: 永久删除（不推荐）
+use_recycle_bin = true
+
+# 操作失败时是否继续
+# true: 遇到错误记录并继续处理其他文件
+# false: 遇到第一个错误就停止
+continue_on_error = true
+
+# ===== 过滤配置 =====
+[filters]
+# 要排除的包名模式（正则表达式列表）
+# 匹配的包不会被清理
+excluded_packages = [
+    # 示例：
+    # "^python.*",      # 所有 python 开头的包
+    # ".*-dev$",        # 所有 dev 版本
+]
+
+# 要排除的版本模式（正则表达式列表）
+# 匹配的版本不会被清理
+excluded_versions = [
+    # 示例：
+    # ".*-beta",        # 所有 beta 版本
+    # ".*-rc\\d+",      # 所有 rc 版本
+]
+
+# 最小文件大小（字节）
+# 小于此大小的文件在列表中不显示（仍会被清理）
+# 0 表示显示所有文件
+min_file_size = 0
+
+# ===== 性能配置 =====
+[performance]
+# 是否默认跳过大小计算
+# true: 不计算文件大小，扫描更快但看不到空间占用
+# false: 计算文件大小，扫描较慢但信息更完整
+skip_size_calculation = false
+
+# 并发扫描的最大线程数
+# 0: 自动检测（CPU核心数）
+# N: 使用 N 个线程
+# 注意：文件系统操作通常不会从大量并发中受益
+max_workers = 0
+
+# ===== 高级配置 =====
+# 你可以为不同的操作系统设置不同的配置
+# 取消注释下面的部分并修改值
+
+# [paths.windows]
+# scoop_root = "D:/scoop"
+# cache_dir = "cache"
+
+# [paths.linux]
+# scoop_root = "/home/user/.scoop"
+# cache_dir = "cache"
+
+# [paths.darwin]  # macOS
+# scoop_root = "/Users/user/.scoop"
+# cache_dir = "cache"
