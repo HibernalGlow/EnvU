@@ -66,7 +66,7 @@
   </subgroup>
   <subgroup guid="02f815b5-a5cf-4c84-bf20-649d1f75d3d8">
     <setting guid="4c793e7d-a264-42e1-87d3-7a0d2f523ccd" name="JavaScript 计时器频率">
-      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="1" />
+      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="0" />
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="0" />
     </setting>
   </subgroup>
@@ -208,11 +208,11 @@
   </subgroup>
   <subgroup guid="54533251-82be-4824-96c1-47b60b740d00">
     <setting guid="06cadf0e-64ed-448a-8927-ce7bf90eb35d" name="处理器性能提高阈值">
-      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="30" />
+      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="70" />
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="90" />
     </setting>
     <setting guid="06cadf0e-64ed-448a-8927-ce7bf90eb35e" name="针对第 1 类处理器电源效率的处理器性能提升阈值">
-      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="60" />
+      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="80" />
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="90" />
     </setting>
     <setting guid="0cc5b647-c1df-4637-891a-dec35c318583" name="处理器性能核心放置最小核心数量">
@@ -244,11 +244,11 @@
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="3" />
     </setting>
     <setting guid="36687f9e-e3a5-4dbf-b1dc-15eb381c6863" name="处理器能源性能首选项策略">
-      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="25" />
+      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="50" />
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="60" />
     </setting>
     <setting guid="36687f9e-e3a5-4dbf-b1dc-15eb381c6864" name="针对第 1 类处理器电源效率的处理器能源性能首选项策略">
-      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="33" />
+      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="50" />
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="50" />
     </setting>
     <setting guid="3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb" name="允许节流状态">
@@ -280,7 +280,7 @@
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="0" />
     </setting>
     <setting guid="45bcc044-d885-43e2-8605-ee0ec6e96b59" name="处理器性能增强策略">
-      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="60" />
+      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="40" />
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="40" />
     </setting>
     <setting guid="465e1f50-b610-473a-ab58-00d1077dc418" name="处理器性能提升策略">
@@ -380,7 +380,7 @@
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="255" />
     </setting>
     <setting guid="893dee8e-2bef-41e0-89c6-b55d0929964c" name="最小处理器状态">
-      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="80" />
+      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="5" />
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="5" />
     </setting>
     <setting guid="893dee8e-2bef-41e0-89c6-b55d0929964d" name="第 1 类处理器电源效率的最小处理器状态">
@@ -532,7 +532,7 @@
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="900" />
     </setting>
     <setting guid="684c3e69-a4f7-4014-8754-d45179a56167" name="高级色彩质量偏好">
-      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="1" />
+      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="0" />
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="0" />
     </setting>
     <setting guid="8ec4b3a5-6868-48c2-be75-4f3044be88a7" name="控制台锁定显示关闭超时">
@@ -548,8 +548,8 @@
       <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="1" />
     </setting>
     <setting guid="aded5e82-b909-4619-9949-f5d71dac0bcb" name="显示器亮度">
-      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="85" />
-      <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="85" />
+      <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="65" />
+      <dcindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="65" />
     </setting>
     <setting guid="f1fbfde2-a960-4165-9f88-50667911ce96" name="显示器亮度变暗">
       <acindex scheme="381b4222-f694-41f0-9685-ff5bb260df2e" value="50" />
