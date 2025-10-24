@@ -191,16 +191,30 @@ def format_size(size: int) -> str:
         return f"{size / tb:.2f} TB"
 
 
-def get_scoop_cache_path(path: Optional[str] = None) -> Path:
+def get_scoop_cache_path(path: Optional[str] = None, config: Optional[Dict[str, Any]] = None) -> Path:
     """获取 Scoop 缓存路径"""
     if path:
         cache_path = Path(path)
     else:
-        scoop = os.environ.get("SCOOP")
-        if not scoop:
-            console.print("[red]错误: 环境变量 SCOOP 未设置[/red]")
-            raise typer.Exit(code=1)
-        cache_path = Path(scoop) / "cache"
+        # 从配置获取
+        if config is None:
+            config = load_config()
+        
+        paths_config = config.get("paths", {})
+        scoop_root = paths_config.get("scoop_root", "")
+        cache_dir = paths_config.get("cache_dir", "cache")
+        
+        # 优先使用配置的 scoop_root
+        if scoop_root:
+            cache_path = Path(scoop_root) / cache_dir
+        else:
+            # 其次使用环境变量
+            scoop = os.environ.get("SCOOP")
+            if not scoop:
+                console.print("[red]错误: 环境变量 SCOOP 未设置[/red]")
+                console.print("[yellow]请设置 SCOOP 环境变量、配置文件中的 scoop_root 或使用参数指定路径[/yellow]")
+                raise typer.Exit(code=1)
+            cache_path = Path(scoop) / cache_dir
 
     if not cache_path.exists():
         console.print(f"[red]错误: Scoop 缓存路径不存在: {cache_path}[/red]")
