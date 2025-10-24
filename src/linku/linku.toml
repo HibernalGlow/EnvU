@@ -24,3 +24,39 @@ link = "C:\\Users\\30902\\Taskfile.yml"
 target = "D:\\1VSCODE\\Projects\\LazyCommand\\EnvU\\dotfile\\Taskfile.yml"
 type = "文件"
 created_at = "2025-08-26T08:59:37.834777+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Local\\kingsoft"
+target = "D:\\1SoftLink\\AppData\\Local\\kingsoft"
+type = "目录"
+created_at = "2025-09-21T16:18:48.033558+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Local\\Czkawka"
+target = "D:\\1SoftLink\\AppData\\Local\\Czkawka"
+type = "目录"
+created_at = "2025-10-01T18:19:55.766886+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Roaming\\exhentai-manga-manager"
+target = "D:\\1SoftLink\\AppData\\Roaming\\exhentai-manga-manager"
+type = "目录"
+created_at = "2025-10-07T21:24:25.780764+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Local\\Qarmin"
+target = "D:\\1SoftLink\\AppData\\Local\\Qarmin"
+type = "目录"
+created_at = "2025-10-11T11:01:27.688081+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Roaming\\Adobe"
+target = "D:\\1SoftLink\\AppData\\Roaming\\Adobe"
+type = "目录"
+created_at = "2025-10-17T13:53:08.468000+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Local\\oh-my-posh"
+target = "D:\\1SoftLink\\AppData\\Local\\oh-my-posh"
+type = "目录"
+created_at = "2025-10-21T15:20:32.168220+00:00"
