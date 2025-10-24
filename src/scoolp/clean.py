@@ -345,6 +345,265 @@ def delete_obsolete(
     show_clean_result(result)
 
 
+@app.command("version")
+def clean_versions(
+    scoop_root: Optional[str] = typer.Option(
+        None,
+        "--root",
+        "-r",
+        help="Scoop 安装根目录 (默认从环境变量 SCOOP 获取)"
+    ),
+    action: str = typer.Option(
+        "list",
+        "--action",
+        "-a",
+        help="操作类型: list(列出), rename(重命名为.old), delete(删除)"
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-n",
+        help="预览模式，不执行实际操作"
+    ),
+    no_size: bool = typer.Option(
+        False,
+        "--no-size",
+        help="跳过大小计算以加快扫描速度"
+    ),
+):
+    """
+    清理 Scoop 应用的旧版本
+    
+    找到 current 指向的当前版本，处理其他旧版本
+    
+    示例:
+      scoolp clean version                    # 列出旧版本
+      scoolp clean version --no-size          # 快速列出（不计算大小）
+      scoolp clean version -a rename --dry-run  # 预览重命名操作
+      scoolp clean version -a delete          # 删除旧版本
+    """
+    import os
+    from pathlib import Path
+    
+    # 获取 Scoop 根目录
+    if scoop_root is None:
+        scoop_root = os.environ.get("SCOOP")
+        if not scoop_root:
+            console.print("[red]错误: 未找到 SCOOP 环境变量，请使用 --root 指定[/red]")
+            raise typer.Exit(code=1)
+    
+    scoop_path = Path(scoop_root)
+    apps_path = scoop_path / "apps"
+    
+    if not apps_path.exists():
+        console.print(f"[red]错误: apps 目录不存在: {apps_path}[/red]")
+        raise typer.Exit(code=1)
+    
+    console.print(f"[cyan]扫描 Scoop 应用目录: {apps_path}[/cyan]")
+    if no_size:
+        console.print("[dim]提示: 已跳过大小计算[/dim]\n")
+    
+    # 统计信息
+    total_apps = 0
+    total_old_versions = 0
+    total_size_saved = 0
+    operations = []
+    
+    # 先快速统计应用数量
+    all_app_dirs = [d for d in apps_path.iterdir() if d.is_dir()]
+    
+    # 使用进度条扫描所有应用
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True  # 完成后自动清除进度条
+    ) as progress:
+        scan_task = progress.add_task(
+            f"[cyan]正在扫描 {len(all_app_dirs)} 个应用...",
+            total=len(all_app_dirs)
+        )
+        
+        for app_dir in sorted(all_app_dirs):
+            app_name = app_dir.name
+            progress.update(scan_task, description=f"[cyan]扫描: {app_name}")
+            
+            current_link = app_dir / "current"
+            
+            # 跳过没有 current 的应用
+            if not current_link.exists():
+                progress.advance(scan_task)
+                continue
+            
+            # 获取 current 指向的实际版本
+            try:
+                if current_link.exists():
+                    current_version = current_link.resolve().name
+                else:
+                    progress.advance(scan_task)
+                    continue
+            except Exception:
+                progress.advance(scan_task)
+                continue
+            
+            # 查找所有版本目录
+            versions = []
+            try:
+                for item in app_dir.iterdir():
+                    if item.is_dir() and item.name != "current" and not item.name.endswith(".old"):
+                        versions.append(item.name)
+            except Exception:
+                progress.advance(scan_task)
+                continue
+            
+            # 找出旧版本
+            old_versions = [v for v in versions if v != current_version]
+            
+            if old_versions:
+                total_apps += 1
+                total_old_versions += len(old_versions)
+                
+                for old_ver in old_versions:
+                    old_path = app_dir / old_ver
+                    
+                    # 可选：计算大小
+                    size = 0
+                    if not no_size:
+                        try:
+                            size = sum(f.stat().st_size for f in old_path.rglob('*') if f.is_file())
+                            total_size_saved += size
+                        except Exception:
+                            size = 0
+                    
+                    operations.append({
+                        'app': app_name,
+                        'version': old_ver,
+                        'current': current_version,
+                        'path': old_path,
+                        'size': size
+                    })
+            
+            progress.advance(scan_task)
+    
+    # 显示结果
+    if not operations:
+        console.print("[green]> 没有发现需要清理的旧版本[/green]")
+        return
+    
+    # 创建结果表格
+    from rich.table import Table
+    table = Table(title=f"发现 {total_old_versions} 个旧版本 (共 {total_apps} 个应用)")
+    table.add_column("应用", style="cyan", width=20)
+    table.add_column("旧版本", style="yellow", width=15)
+    table.add_column("当前版本", style="green", width=15)
+    
+    if not no_size:
+        table.add_column("大小", style="white", justify="right", width=12)
+    
+    # 显示限制
+    display_limit = 30
+    for op in operations[:display_limit]:
+        row = [
+            op['app'],
+            op['version'],
+            op['current'],
+        ]
+        if not no_size:
+            row.append(format_size(op['size']))
+        table.add_row(*row)
+    
+    if len(operations) > display_limit:
+        remaining = len(operations) - display_limit
+        row = [f"... 还有 {remaining} 个", "...", "..."]
+        if not no_size:
+            row.append("...")
+        table.add_row(*row)
+    
+    console.print(table)
+    
+    # 统计信息
+    console.print(f"\n[bold]统计:[/bold]")
+    console.print(f"  应用总数: {total_apps}")
+    console.print(f"  旧版本总数: {total_old_versions}")
+    if not no_size:
+        console.print(f"  可节省空间: {format_size(total_size_saved)}")
+    
+    # 执行操作
+    if action == "list":
+        console.print(f"\n[dim]提示:[/dim]")
+        console.print(f"[dim]  - 重命名为 .old: scoolp clean version -a rename[/dim]")
+        console.print(f"[dim]  - 预览重命名:     scoolp clean version -a rename --dry-run[/dim]")
+        console.print(f"[dim]  - 删除旧版本:     scoolp clean version -a delete[/dim]")
+        return
+    
+    # 确认操作
+    if dry_run:
+        console.print(f"\n[yellow]预览模式: 以下是将要执行的操作（不会实际修改文件）[/yellow]")
+    else:
+        action_name = "重命名" if action == "rename" else "删除"
+        if not typer.confirm(f"\n确定要{action_name} {total_old_versions} 个旧版本吗？"):
+            console.print("[yellow]已取消操作[/yellow]")
+            return
+    
+    # 执行操作
+    success_count = 0
+    error_count = 0
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=False
+    ) as progress:
+        task = progress.add_task(
+            f"[cyan]{'[预览] ' if dry_run else ''}{'重命名' if action == 'rename' else '删除'}旧版本...",
+            total=len(operations)
+        )
+        
+        for op in operations:
+            old_path = op['path']
+            progress.update(task, description=f"[cyan]处理: {op['app']}/{op['version']}")
+            
+            try:
+                if dry_run:
+                    # 预览模式：只显示将要执行的操作
+                    if action == "rename":
+                        new_name = f"{old_path.name}.old"
+                        console.print(f"[dim]将重命名:[/dim] {op['app']}/{op['version']} → {new_name}")
+                    elif action == "delete":
+                        console.print(f"[dim]将删除:[/dim] {op['app']}/{op['version']}")
+                else:
+                    # 实际执行
+                    if action == "rename":
+                        new_path = old_path.parent / f"{old_path.name}.old"
+                        old_path.rename(new_path)
+                        console.print(f"[green]>[/green] 重命名: {op['app']}/{op['version']} → {new_path.name}")
+                    elif action == "delete":
+                        import shutil
+                        shutil.rmtree(old_path)
+                        console.print(f"[green]>[/green] 删除: {op['app']}/{op['version']}")
+                
+                success_count += 1
+            except Exception as e:
+                console.print(f"[red]x[/red] 失败: {op['app']}/{op['version']}: {e}")
+                error_count += 1
+            
+            progress.advance(task)
+    
+    # 结果统计
+    console.print(f"\n[bold]{'预览' if dry_run else '完成'}:[/bold]")
+    if dry_run:
+        console.print(f"  预览操作数: [cyan]{success_count}[/cyan]")
+        if not no_size and action == "delete":
+            console.print(f"  预计节省: {format_size(total_size_saved)}")
+    else:
+        console.print(f"  成功: [green]{success_count}[/green]")
+        if error_count > 0:
+            console.print(f"  失败: [red]{error_count}[/red]")
+        if not no_size and action == "delete":
+            console.print(f"  节省空间: {format_size(total_size_saved)}")
+
+
 @app.callback(invoke_without_command=True)
 def clean_main(ctx: typer.Context):
     """

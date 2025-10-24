@@ -180,7 +180,7 @@ class ScoopPackageInstaller:
         default_choice = "emm"
         if default_choice in packages:
             console.print(f"\n[bold blue]默认包: {default_choice}[/bold blue]")
-            if Confirm.ask(f"是否安装默认包 {default_choice}?", default=True):
+            if Confirm.ask(f"是否安装默认包 {default_choice}?", default=False):
                 self.install_package(default_choice)
                 return
 
