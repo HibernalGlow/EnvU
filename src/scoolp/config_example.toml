@@ -1,5 +1,5 @@
 # Scoop 清理工具通用配置文件示例
-# 复制此文件为 clean_config.toml 并根据需要修改
+# 复制此文件为 config.toml 并根据需要修改
 
 # ===== 路径配置 =====
 [paths]

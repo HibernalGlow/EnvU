@@ -87,7 +87,7 @@ DEFAULT_CONFIG = {
 
 def load_config() -> Dict[str, Any]:
     """加载配置文件"""
-    config_path = Path(__file__).parent / "clean_config.toml"
+    config_path = Path(__file__).parent / "config.toml"
     
     if not config_path.exists():
         console.print(f"[dim]配置文件不存在，使用默认配置: {config_path}[/dim]")

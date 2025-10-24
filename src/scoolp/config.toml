@@ -87,7 +87,7 @@ min_file_size = 0
 # ===== 性能配置 =====
 [performance]
 # 是否默认跳过大小计算（加快扫描速度）
-skip_size_calculation = false
+skip_size_calculation = true
 
 # 并发扫描的最大线程数（0 表示自动）
 max_workers = 0

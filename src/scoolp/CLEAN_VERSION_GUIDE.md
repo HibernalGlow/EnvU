@@ -30,7 +30,7 @@
 
 ### ⚙️ 配置文件
 
-通过 `clean_config.toml` 自定义行为：
+通过 `config.toml` 自定义行为：
 
 ```toml
 [version_detection]
@@ -136,7 +136,7 @@ vscode/
 
 ### 添加自定义黑名单
 
-编辑 `src/scoolp/clean_config.toml`：
+编辑 `src/scoolp/config.toml`：
 
 ```toml
 [version_detection]
@@ -291,8 +291,8 @@ def is_valid_version_dir(dir_name: str, config: Dict) -> bool:
 
 ## 配置文件位置
 
-- **配置文件**：`LazyCommand/EnvU/src/scoolp/clean_config.toml`
-- **示例文件**：`LazyCommand/EnvU/src/scoolp/clean_config_example.toml`
+- **配置文件**：`LazyCommand/EnvU/src/scoolp/config.toml`
+- **示例文件**：`LazyCommand/EnvU/src/scoolp/config_example.toml`
 
 ## 更新日志
 
