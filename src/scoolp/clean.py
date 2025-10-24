@@ -5,9 +5,11 @@ Scoop 缓存清理模块
 """
 
 import os
+import re
+import sys
 from pathlib import Path
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 from datetime import datetime
 from enum import Enum
 
@@ -18,8 +20,95 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from send2trash import send2trash
 
+# 根据 Python 版本导入 tomllib 或 tomli
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        tomllib = None
+
 console = Console()
 app = typer.Typer(help="清理 Scoop 缓存中的过期安装包")
+
+
+# 默认配置
+DEFAULT_CONFIG = {
+    "version_detection": {
+        "require_digits": True,
+        "blacklist_patterns": [
+            r"^config$",
+            r"^\..*",
+            r"^current$",
+            r"^persist$",
+            r"^cache$",
+            r"^data$",
+            r"^logs?$",
+            r"^temp$",
+            r"^backup$",
+            r".*\.old$",
+        ]
+    },
+    "behavior": {
+        "display_limit": 30,
+        "confirm_before_delete": True,
+    }
+}
+
+
+def load_config() -> Dict[str, Any]:
+    """加载配置文件"""
+    config_path = Path(__file__).parent / "clean_config.toml"
+    
+    if not config_path.exists():
+        console.print(f"[dim]配置文件不存在，使用默认配置: {config_path}[/dim]")
+        return DEFAULT_CONFIG
+    
+    if tomllib is None:
+        console.print("[yellow]警告: 无法导入 tomllib/tomli，使用默认配置[/yellow]")
+        return DEFAULT_CONFIG
+    
+    try:
+        with open(config_path, "rb") as f:
+            config = tomllib.load(f)
+        return config
+    except Exception as e:
+        console.print(f"[yellow]警告: 加载配置文件失败 ({e})，使用默认配置[/yellow]")
+        return DEFAULT_CONFIG
+
+
+def is_valid_version_dir(dir_name: str, config: Dict[str, Any]) -> bool:
+    """
+    判断目录是否是有效的版本目录
+    
+    Args:
+        dir_name: 目录名
+        config: 配置字典
+    
+    Returns:
+        bool: 是否是有效的版本目录
+    """
+    # 获取配置
+    version_config = config.get("version_detection", {})
+    require_digits = version_config.get("require_digits", True)
+    blacklist_patterns = version_config.get("blacklist_patterns", [])
+    
+    # 检查黑名单
+    for pattern in blacklist_patterns:
+        try:
+            if re.match(pattern, dir_name):
+                return False
+        except re.error as e:
+            console.print(f"[yellow]警告: 无效的正则表达式 '{pattern}': {e}[/yellow]")
+            continue
+    
+    # 如果要求包含数字，检查是否包含数字
+    if require_digits:
+        if not any(c.isdigit() for c in dir_name):
+            return False
+    
+    return True
 
 
 class ActionType(Enum):
@@ -390,6 +479,9 @@ def clean_versions(
     import os
     from pathlib import Path
     
+    # 加载配置
+    config = load_config()
+    
     # 获取 Scoop 根目录
     if scoop_root is None:
         scoop_root = os.environ.get("SCOOP")
@@ -455,7 +547,7 @@ def clean_versions(
             versions = []
             try:
                 for item in app_dir.iterdir():
-                    if item.is_dir() and item.name != "current" and not item.name.endswith(".old"):
+                    if item.is_dir() and is_valid_version_dir(item.name, config):
                         versions.append(item.name)
             except Exception:
                 progress.advance(scan_task)
@@ -505,8 +597,8 @@ def clean_versions(
     if not no_size:
         table.add_column("大小", style="white", justify="right", width=12)
     
-    # 显示限制
-    display_limit = 30
+    # 显示限制（从配置获取）
+    display_limit = config.get("behavior", {}).get("display_limit", 30)
     for op in operations[:display_limit]:
         row = [
             op['app'],

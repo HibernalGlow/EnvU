@@ -1,0 +1,27 @@
+# Scoop 旧版本清理配置文件
+
+[version_detection]
+# 版本号必须包含数字（防止误删 config、.uv 等目录）
+require_digits = true
+
+# 黑名单正则表达式列表（匹配这些模式的目录不会被视为旧版本）
+blacklist_patterns = [
+    "^config$",           # 配置目录
+    "^\\..*",             # 所有以点开头的隐藏目录（如 .uv）
+    "^current$",          # current 链接
+    "^persist$",          # persist 目录
+    "^cache$",            # 缓存目录
+    "^data$",             # 数据目录
+    "^logs?$",            # log 或 logs 目录
+    "^temp$",             # 临时目录
+    "^backup$",           # 备份目录
+    ".*\\.old$",          # 已经标记为 .old 的目录
+]
+
+[behavior]
+# 默认显示的条目数量
+display_limit = 30
+
+# 删除操作是否需要确认
+confirm_before_delete = true
+

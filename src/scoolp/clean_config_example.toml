@@ -1,0 +1,38 @@
+# Scoop 旧版本清理配置文件示例
+# 复制此文件为 clean_config.toml 并根据需要修改
+
+[version_detection]
+# 版本号必须包含数字（防止误删 config、data 等目录）
+# 设置为 true 时，只有包含数字的目录才会被认为是版本目录
+# 例如: "1.2.3" ✓, "2024-01-01" ✓, "config" ✗, "data" ✗
+require_digits = true
+
+# 黑名单正则表达式列表
+# 匹配这些模式的目录不会被视为旧版本，即使它们包含数字
+blacklist_patterns = [
+    "^config$",           # 配置目录
+    "^\\..*",             # 所有以点开头的隐藏目录（如 .uv, .git）
+    "^current$",          # current 符号链接
+    "^persist$",          # Scoop 持久化数据目录
+    "^cache$",            # 缓存目录
+    "^data$",             # 数据目录
+    "^logs?$",            # log 或 logs 目录
+    "^temp$",             # 临时目录
+    "^backup$",           # 备份目录
+    ".*\\.old$",          # 已经标记为 .old 的目录
+    "^download$",         # 下载目录
+    "^settings?$",        # settings 或 setting 目录
+]
+
+# 自定义黑名单示例：
+# "^test.*",            # 所有以 test 开头的目录
+# ".*_backup$",         # 所有以 _backup 结尾的目录
+# "^(assets|resources)$",  # assets 或 resources 目录
+
+[behavior]
+# 列表显示时默认显示的条目数量
+display_limit = 30
+
+# 删除操作前是否需要确认
+confirm_before_delete = true
+

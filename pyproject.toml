@@ -8,6 +8,7 @@ dependencies = [
     "rich",
     "typer",
     "send2trash",
+    "tomli>=2.0.0; python_version < '3.11'",
 ]
 
 [project.scripts]
