@@ -6,8 +6,10 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "rich",
+    "typer",
 ]
 
 [project.scripts]
 linku = "linku.__main__:main"
 owithu = "owithu.__main__:main"
+scoolp = "scoolp.__main__:main"
