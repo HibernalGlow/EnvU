@@ -16,6 +16,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from send2trash import send2trash
 
 console = Console()
 app = typer.Typer(help="清理 Scoop 缓存中的过期安装包")
@@ -215,12 +216,13 @@ def clean_cache(result: CleanResult) -> None:
                 file_path = scoop_path / pkg.filename
 
                 if file_path.exists():
-                    file_path.unlink()
-                    console.print(f"[dim]删除: {pkg.name} {pkg.version} ({format_size(pkg.size)})[/dim]")
+                    send2trash(str(file_path))
+                    console.print(f"[dim]移至回收站: {pkg.name} {pkg.version} ({format_size(pkg.size)})[/dim]")
 
                 progress.advance(task)
 
-        console.print(f"\n[green]✓ 已删除 {result.clean_count} 个过期文件[/green]")
+        console.print(f"\n[green]> 已移至回收站 {result.clean_count} 个过期文件[/green]")
+        console.print(f"[dim]提示: 清空回收站可释放空间[/dim]")
 
 
 def show_clean_result(result: CleanResult) -> None:
@@ -250,10 +252,13 @@ def show_clean_result(result: CleanResult) -> None:
 过期包数量       : {result.clean_count}
 过期包总大小     : {format_size(result.clean_size)}
 """
+    
+    if result.action == ActionType.DELETE:
+        stats += f"\n[dim]注: 文件已移至回收站，清空回收站可释放空间[/dim]"
 
     panel = Panel.fit(
         stats.strip(),
-        title="📊 统计信息",
+        title="统计信息",
         border_style="blue"
     )
     console.print(panel)
@@ -322,19 +327,19 @@ def delete_obsolete(
     
     console.print(f"[yellow]找到 {result.clean_count} 个过期包，总大小 {format_size(result.clean_size)}[/yellow]\n")
     
-    # 显示前10个要删除的文件
+    # 显示前10个要处理的文件
     preview_count = min(10, len(result.clean_packages))
-    console.print("[dim]将删除以下文件 (前10个):[/dim]")
+    console.print("[dim]将移至回收站的文件 (前10个):[/dim]")
     for pkg in result.clean_packages[:preview_count]:
-        console.print(f"  [dim]• {pkg.name} {pkg.version} ({format_size(pkg.size)})[/dim]")
+        console.print(f"  [dim]- {pkg.name} {pkg.version} ({format_size(pkg.size)})[/dim]")
     
     if len(result.clean_packages) > preview_count:
         console.print(f"  [dim]... 还有 {len(result.clean_packages) - preview_count} 个文件[/dim]")
     
-    # 确认删除
+    # 确认操作
     if not force:
         confirm = typer.confirm(
-            f"\n确定要删除这 {result.clean_count} 个文件吗？",
+            f"\n确定要移动这 {result.clean_count} 个文件到回收站吗？",
             default=False
         )
         if not confirm:
@@ -357,7 +362,7 @@ def clean_versions(
         "list",
         "--action",
         "-a",
-        help="操作类型: list(列出), rename(重命名为.old), delete(删除)"
+        help="操作类型: list(列出), rename(重命名为.old), delete(移至回收站)"
     ),
     dry_run: bool = typer.Option(
         False,
@@ -380,7 +385,7 @@ def clean_versions(
       scoolp clean version                    # 列出旧版本
       scoolp clean version --no-size          # 快速列出（不计算大小）
       scoolp clean version -a rename --dry-run  # 预览重命名操作
-      scoolp clean version -a delete          # 删除旧版本
+      scoolp clean version -a delete          # 移至回收站
     """
     import os
     from pathlib import Path
@@ -531,16 +536,16 @@ def clean_versions(
     # 执行操作
     if action == "list":
         console.print(f"\n[dim]提示:[/dim]")
-        console.print(f"[dim]  - 重命名为 .old: scoolp clean version -a rename[/dim]")
-        console.print(f"[dim]  - 预览重命名:     scoolp clean version -a rename --dry-run[/dim]")
-        console.print(f"[dim]  - 删除旧版本:     scoolp clean version -a delete[/dim]")
+        console.print(f"[dim]  - 重命名为 .old:   scoolp clean version -a rename[/dim]")
+        console.print(f"[dim]  - 预览重命名:       scoolp clean version -a rename --dry-run[/dim]")
+        console.print(f"[dim]  - 移至回收站:       scoolp clean version -a delete[/dim]")
         return
     
     # 确认操作
     if dry_run:
         console.print(f"\n[yellow]预览模式: 以下是将要执行的操作（不会实际修改文件）[/yellow]")
     else:
-        action_name = "重命名" if action == "rename" else "删除"
+        action_name = "重命名" if action == "rename" else "移至回收站"
         if not typer.confirm(f"\n确定要{action_name} {total_old_versions} 个旧版本吗？"):
             console.print("[yellow]已取消操作[/yellow]")
             return
@@ -556,7 +561,7 @@ def clean_versions(
         transient=False
     ) as progress:
         task = progress.add_task(
-            f"[cyan]{'[预览] ' if dry_run else ''}{'重命名' if action == 'rename' else '删除'}旧版本...",
+            f"[cyan]{'[预览] ' if dry_run else ''}{'重命名' if action == 'rename' else '移至回收站'}旧版本...",
             total=len(operations)
         )
         
@@ -571,7 +576,7 @@ def clean_versions(
                         new_name = f"{old_path.name}.old"
                         console.print(f"[dim]将重命名:[/dim] {op['app']}/{op['version']} → {new_name}")
                     elif action == "delete":
-                        console.print(f"[dim]将删除:[/dim] {op['app']}/{op['version']}")
+                        console.print(f"[dim]将移至回收站:[/dim] {op['app']}/{op['version']}")
                 else:
                     # 实际执行
                     if action == "rename":
@@ -579,9 +584,8 @@ def clean_versions(
                         old_path.rename(new_path)
                         console.print(f"[green]>[/green] 重命名: {op['app']}/{op['version']} → {new_path.name}")
                     elif action == "delete":
-                        import shutil
-                        shutil.rmtree(old_path)
-                        console.print(f"[green]>[/green] 删除: {op['app']}/{op['version']}")
+                        send2trash(str(old_path))
+                        console.print(f"[green]>[/green] 移至回收站: {op['app']}/{op['version']}")
                 
                 success_count += 1
             except Exception as e:
@@ -595,13 +599,15 @@ def clean_versions(
     if dry_run:
         console.print(f"  预览操作数: [cyan]{success_count}[/cyan]")
         if not no_size and action == "delete":
-            console.print(f"  预计节省: {format_size(total_size_saved)}")
+            console.print(f"  预计释放: {format_size(total_size_saved)}")
+            console.print(f"  [dim]注: 文件将移至回收站，不会立即释放空间[/dim]")
     else:
         console.print(f"  成功: [green]{success_count}[/green]")
         if error_count > 0:
             console.print(f"  失败: [red]{error_count}[/red]")
         if not no_size and action == "delete":
-            console.print(f"  节省空间: {format_size(total_size_saved)}")
+            console.print(f"  已移至回收站: {format_size(total_size_saved)}")
+            console.print(f"  [dim]提示: 清空回收站可释放空间[/dim]")
 
 
 @app.callback(invoke_without_command=True)
