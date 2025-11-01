@@ -2,14 +2,33 @@
 
 version: '3'
 
+vars:
+  MODULE_PATH: __main__.py
+
 tasks:
   default:
-    desc: "可用任务列表"
+    desc: "显示可用任务列表"
     cmds:
       - task --list
     silent: true
+
+  start:
+    desc: "启动 Streamlit Web 界面"
+    cmds:
+      - streamlit run {{.MODULE_PATH}}
+
+  start-browser:
+    desc: "启动 Streamlit 并自动打开浏览器"
+    cmds:
+      - streamlit run {{.MODULE_PATH}} --server.headless false
+
+  start-port:
+    desc: "在指定端口启动 Streamlit (默认: 8501)"
+    cmds:
+      - streamlit run {{.MODULE_PATH}} --server.port {{.PORT | default "8501"}}
+
   ready:
-    desc: "准备"
+    desc: "准备工作流 - 运行相关准备命令"
     cmds:
       - samea
       - crashu

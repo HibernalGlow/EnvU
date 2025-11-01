@@ -60,3 +60,15 @@ link = "C:\\Users\\30902\\AppData\\Local\\oh-my-posh"
 target = "D:\\1SoftLink\\AppData\\Local\\oh-my-posh"
 type = "目录"
 created_at = "2025-10-21T15:20:32.168220+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Roaming\\uTools"
+target = "D:\\1SoftLink\\AppData\\Roaming\\uTools"
+type = "目录"
+created_at = "2025-10-25T16:03:04.528916+00:00"
+
+[[links]]
+link = "C:\\ProgramData\\Netease\\GameViewer"
+target = "D:\\1SoftLink\\ProgramData\\Netease\\GameViewer"
+type = "目录"
+created_at = "2025-10-30T03:14:53.165626+00:00"
