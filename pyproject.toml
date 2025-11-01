@@ -15,3 +15,4 @@ dependencies = [
 linku = "linku.__main__:main"
 owithu = "owithu.__main__:main"
 scoolp = "scoolp.__main__:cli"
+reinstallp = "reinstallp.__main__:main"
