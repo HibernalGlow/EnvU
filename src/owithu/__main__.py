@@ -49,6 +49,7 @@ def main():
 
     p_reg = sub.add_parser("register", help="Register all entries from TOML")
     add_common(p_reg)
+    p_reg.add_argument("--key", help="Only register the specific key (e.g., VSCode)")
 
     p_unreg = sub.add_parser("unregister", help="Remove entries from TOML")
     add_common(p_unreg)
@@ -87,10 +88,25 @@ def main():
         if action == "register":
             _, _, entries = load_config(cfg)
             preview(entries)
-            if not Confirm.ask(f"确认注册以上条目到 [bold]{hive}[/] ?", default=True):
-                console.print("已取消。")
-                return
-            register_from_toml(cfg, hive=hive)
+            keys = [e.key for e in entries]
+            console.print("可用键: " + ", ".join(keys))
+            register_all = Confirm.ask("要注册所有条目吗?", default=True)
+            if register_all:
+                if not Confirm.ask(f"确认注册以上条目到 [bold]{hive}[/] ?", default=True):
+                    console.print("已取消。")
+                    return
+                register_from_toml(cfg, hive=hive)
+            else:
+                sel = Prompt.ask("输入要注册的 key（逗号分隔）", default="")
+                selected = [s.strip() for s in sel.split(",") if s.strip()]
+                if not selected:
+                    console.print("未选择任何条目，已取消。")
+                    return
+                if not Confirm.ask(f"确认注册 {', '.join(selected)} 到 [bold]{hive}[/] ?", default=True):
+                    console.print("已取消。")
+                    return
+                for k in selected:
+                    register_from_toml(cfg, hive=hive, only_key=k)
             console.print("[green]Done.[/]")
             return
 
@@ -139,7 +155,7 @@ def main():
             if not Confirm.ask(f"将注册到 [bold]{hive_show}[/]，确认继续?", default=True):
                 console.print("已取消。")
                 return
-        register_from_toml(toml, hive=args.hive)
+        register_from_toml(toml, hive=args.hive, only_key=getattr(args, "key", None))
         console.print("Done.")
     elif args.cmd == "unregister":
         if getattr(args, "interactive", False):

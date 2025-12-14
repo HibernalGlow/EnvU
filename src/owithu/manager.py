@@ -143,8 +143,10 @@ def load_config(toml_path: str) -> tuple[dict, dict, list[Entry]]:
     return vars_map, {"enabled": default_enabled, "hives": default_hives}, entries
 
 
-def register_entries(entries: list[Entry], hive: Optional[str] = None, defaults_hives: Optional[list[str]] = None):
+def register_entries(entries: list[Entry], hive: Optional[str] = None, defaults_hives: Optional[list[str]] = None, only_key: Optional[str] = None):
     for e in entries:
+        if only_key and e.key != only_key:
+            continue
         if not e.enabled:
             continue
         hives_to_use = [hive] if hive else (e.hives or defaults_hives or ["HKCU"])
@@ -191,9 +193,9 @@ def preview(entries: list[Entry]):
     console.print(table)
 
 
-def register_from_toml(toml_path: str, hive: Optional[str] = None):
+def register_from_toml(toml_path: str, hive: Optional[str] = None, only_key: Optional[str] = None):
     _, defaults, entries = load_config(toml_path)
-    register_entries(entries, hive=hive, defaults_hives=defaults.get("hives"))
+    register_entries(entries, hive=hive, defaults_hives=defaults.get("hives"), only_key=only_key)
 
 
 def unregister_from_toml(toml_path: str, hive: Optional[str] = None, only_key: Optional[str] = None):
