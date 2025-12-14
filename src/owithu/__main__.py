@@ -80,12 +80,12 @@ def main():
         hive = Prompt.ask("选择写入的注册表 Hive (留空则按配置决定)", choices=["HKCU", "HKCR", "HKLM", ""], default="") or None
 
         if action == "preview":
-            _, entries = load_config(cfg)
+            _, _, entries = load_config(cfg)
             preview(entries)
             return
 
         if action == "register":
-            _, entries = load_config(cfg)
+            _, _, entries = load_config(cfg)
             preview(entries)
             if not Confirm.ask(f"确认注册以上条目到 [bold]{hive}[/] ?", default=True):
                 console.print("已取消。")
@@ -95,7 +95,7 @@ def main():
             return
 
         if action == "unregister":
-            _, entries = load_config(cfg)
+            _, _, entries = load_config(cfg)
             keys = [e.key for e in entries]
             console.print("可用键: " + ", ".join(keys))
             remove_all = Confirm.ask("要移除所有条目吗?", default=False)
@@ -122,13 +122,13 @@ def main():
     toml = args.config
 
     if args.cmd == "preview":
-        _, entries = load_config(toml)
+        _, _, entries = load_config(toml)
         preview(entries)
         return
 
     if args.cmd == "register":
         if getattr(args, "interactive", False):
-            _, entries = load_config(toml)
+            _, _, entries = load_config(toml)
             preview(entries)
             args.hive = (Prompt.ask("选择写入的注册表 Hive (留空则按配置决定)", choices=["HKCU", "HKCR", "HKLM", ""], default="") or None) if getattr(args, "interactive", False) else args.hive
             if not Confirm.ask(f"确认注册到 [bold]{args.hive}[/] ?", default=True):
@@ -143,7 +143,7 @@ def main():
         console.print("Done.")
     elif args.cmd == "unregister":
         if getattr(args, "interactive", False):
-            _, entries = load_config(toml)
+            _, _, entries = load_config(toml)
             keys = [e.key for e in entries]
             console.print("可用键: " + ", ".join(keys))
             args.hive = (Prompt.ask("选择目标注册表 Hive (留空则按配置决定)", choices=["HKCU", "HKCR", "HKLM", ""], default="") or None)

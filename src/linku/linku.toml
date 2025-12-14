@@ -72,3 +72,39 @@ link = "C:\\ProgramData\\Netease\\GameViewer"
 target = "D:\\1SoftLink\\ProgramData\\Netease\\GameViewer"
 type = "目录"
 created_at = "2025-10-30T03:14:53.165626+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Roaming\\Cursor"
+target = "D:\\1SoftLink\\AppData\\Roaming\\Cursor"
+type = "目录"
+created_at = "2025-11-23T12:37:30.783794+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Roaming\\DigitalVolcano\\DuplicateCleaner"
+target = "D:\\1SoftLink\\AppData\\Roaming\\DigitalVolcano\\DuplicateCleaner"
+type = "目录"
+created_at = "2025-11-23T12:38:27.476858+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Local\\Zed"
+target = "D:\\1SoftLink\\AppData\\Local\\Zed"
+type = "目录"
+created_at = "2025-11-23T15:06:27.687194+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\AppData\\Local\\Programs\\Ollama"
+target = "D:\\1SoftLink\\AppData\\Local\\Programs\\Ollama"
+type = "目录"
+created_at = "2025-12-07T23:20:58.916530+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\.ollama"
+target = "D:\\1Repo\\Soft\\ollama\\.ollama"
+type = "目录"
+created_at = "2025-12-08T06:07:03.333505+00:00"
+
+[[links]]
+link = "C:\\Users\\30902\\.gemini"
+target = "D:\\1SoftLink\\Users\\30902\\.gemini"
+type = "目录"
+created_at = "2025-12-14T04:00:03.988921+00:00"

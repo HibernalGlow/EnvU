@@ -2,34 +2,46 @@
 
 version: '3'
 
-vars:
-  MODULE_PATH: __main__.py
-
 tasks:
   default:
-    desc: "显示可用任务列表"
+    desc: "可用任务列表"
     cmds:
       - task --list
     silent: true
-
-  start:
-    desc: "启动 Streamlit Web 界面"
-    cmds:
-      - streamlit run {{.MODULE_PATH}}
-
-  start-browser:
-    desc: "启动 Streamlit 并自动打开浏览器"
-    cmds:
-      - streamlit run {{.MODULE_PATH}} --server.headless false
-
-  start-port:
-    desc: "在指定端口启动 Streamlit (默认: 8501)"
-    cmds:
-      - streamlit run {{.MODULE_PATH}} --server.port {{.PORT | default "8501"}}
-
   ready:
-    desc: "准备工作流 - 运行相关准备命令"
+    desc: "准备"
     cmds:
       - samea
       - crashu
       - migratef -c -t 'E:\1Hub\EH\4EHV\already' -d
+  add-black:
+    desc: "黑名单"
+    cmds:
+      - samea
+      - lista scan --clipboard --category black
+      - lista output --category black --format names --overwrite
+      - searcha search -c --copy
+      - migratef 
+      # migratef -c -t 'E:\1Hub\EH\4EHV\trash' -d
+  del-black:
+    desc: "黑名单"
+    cmds:
+      # - samea
+      # 生成黑名单文件
+      - lista output --category black --format names --overwrite
+      # 使用剪贴板路径搜索并复制结果
+      - searcha search -c --copy
+      - migratef 
+      # migratef -c -t 'E:\1Hub\EH\4EHV\trash' -d
+
+  del-black-text:
+    desc: "黑名单"
+    cmds:
+      # - samea
+      # 生成黑名单文件名列表文件
+      - lista output --category black --format names --overwrite
+      # 使用生成的黑名单文件作为文件名列表进行搜索 (--names-file 指定文件名列表文件)
+      - searcha search --names-file lista_black_names.txt -c --copy #复制要完整列表到剪贴板
+      # - migratef -c -t 'E:\1Hub\EH\4EHV\trash' -d
+
+# ugrep -r -U -l -i --include="*.zip" '\.(mp4|mkv|mov|gif|nov)\b' "E:\1Hub\EH\1EHV"

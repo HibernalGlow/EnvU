@@ -46,3 +46,12 @@ scope = ["file", "directory", "background"]
 args = ["%1"]
 icon = "{scoop_root}/apps/potplayer/current/PotPlayerMini64.exe"
 # enabled = true
+
+[[entries]]
+key = "Zed"
+label = "Open with Zed"
+exe = "{scoop_root}/apps/zed/current/zed.exe"
+scope = ["file", "directory", "background"]
+args = ["%1"]
+icon = "{scoop_root}/apps/zed/current/zed.exe"
+# enabled = true
