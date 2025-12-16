@@ -1,0 +1,77 @@
+# reinstallp 配置文件
+# 控制递归查找和重新安装 Python 可编辑包的行为
+
+# ===== 排除路径配置 =====
+[exclude]
+# 排除路径的正则表达式模式列表
+# 支持多关键词匹配，使用正则表达式语法
+# 匹配路径的任何部分（包括目录名）
+patterns = [
+    "\\.venv",            # 虚拟环境目录
+    "\\bvenv\\b",         # 虚拟环境目录（完整单词）
+    "\\.env",             # 环境变量目录
+    "__pycache__",        # Python 缓存目录
+    "\\.git",             # Git 目录
+    "node_modules",       # Node.js 模块目录
+    "\\.pytest_cache",    # pytest 缓存目录
+    "\\.mypy_cache",      # mypy 缓存目录
+    "\\.egg-info",        # egg 信息目录
+    "\\bbuild\\b",        # 构建目录（完整单词）
+    "\\bdist\\b",         # 分发目录（完整单词）
+    "\\.tox",             # tox 目录
+    "^\\.",               # 以点开头的隐藏目录
+    "\\btest\\b",         # test 目录（完整单词）
+    "\\btemp\\b",         # temp 目录（完整单词）
+    "\\btests\\b",        # tests 目录（完整单词）
+]
+
+# 排除模式匹配方式
+# "any" - 匹配任何一个模式即排除
+# "all" - 匹配所有模式才排除（通常不使用）
+match_mode = "any"
+
+# 是否区分大小写
+case_sensitive = false
+
+# ===== 搜索配置 =====
+[search]
+# 默认搜索根目录
+default_root = "D:\\1VSCODE\\Projects"
+
+# 最大搜索深度（0 表示无限制）
+max_depth = 0
+
+# 是否跟随符号链接
+follow_symlinks = false
+
+# ===== 安装配置 =====
+[install]
+# 默认安装方式
+# "system" - 全局安装 (--system)
+# "local" - 局部安装（虚拟环境）
+default_mode = "system"
+
+# 安装失败时是否自动重试
+auto_retry = true
+
+# 安装失败时是否重新创建虚拟环境
+recreate_venv_on_failure = true
+
+# ===== 显示配置 =====
+[display]
+# 是否显示详细输出
+verbose = true
+
+# 是否显示进度信息
+show_progress = true
+
+# 表格中显示的最大项目数（0 表示不限制）
+max_display_items = 0
+
+# ===== 性能配置 =====
+[performance]
+# 并发安装的最大数量（0 表示串行）
+max_concurrent_installs = 0
+
+# 搜索超时时间（秒，0 表示无限制）
+search_timeout = 0
