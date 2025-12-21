@@ -451,23 +451,44 @@ def main():
         console.print("[yellow]取消安装[/yellow]")
         return
       # 安装所有项目
-    successful_installs = 0
-    failed_installs = 0
+    install_results = []
     
     for i, project in enumerate(projects, 1):
         console.print(f"[cyan]({i}/{len(projects)})[/cyan]")
-        if install_package(project, config, use_system):
+        success = install_package(project, config, use_system)
+        install_results.append({
+            "project": project,
+            "name": project.name,
+            "path": str(project),
+            "status": "成功" if success else "失败"
+        })
+    
+    # 显示安装结果表格
+    result_table = Table(title="安装结果详情")
+    result_table.add_column("状态", style="", no_wrap=True, width=6)
+    result_table.add_column("项目名", style="cyan", no_wrap=True)
+    result_table.add_column("路径", style="magenta")
+    
+    successful_installs = 0
+    failed_installs = 0
+    
+    for result in install_results:
+        if result["status"] == "成功":
+            result_table.add_row("✅", result["name"], result["path"], style="green")
             successful_installs += 1
         else:
+            result_table.add_row("❌", result["name"], result["path"], style="red")
             failed_installs += 1
     
-    # 显示安装结果
-    result_text = Text()
-    result_text.append("安装完成！\n", style="bold")
-    result_text.append(f"成功: {successful_installs} 个项目\n", style="green")
-    result_text.append(f"失败: {failed_installs} 个项目", style="red" if failed_installs > 0 else "green")
+    console.print(result_table)
     
-    console.print(Panel.fit(result_text, title="安装结果"))
+    # 显示统计摘要
+    summary_text = Text()
+    summary_text.append("安装完成！\n", style="bold")
+    summary_text.append(f"成功: {successful_installs} 个项目\n", style="green")
+    summary_text.append(f"失败: {failed_installs} 个项目", style="red" if failed_installs > 0 else "green")
+    
+    console.print(Panel.fit(summary_text, title="安装摘要"))
 
 if __name__ == "__main__":
     try:

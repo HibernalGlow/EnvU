@@ -24,6 +24,8 @@ patterns = [
     "\\btemp\\b",         # temp 目录（完整单词）
     "\\btests\\b",        # tests 目录（完整单词）
     "aestiv",             # 包含 aestiv 的目录
+    "neoview",
+    "neeview"
 ]
 
 # 排除模式匹配方式

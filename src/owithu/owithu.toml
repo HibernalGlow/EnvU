@@ -39,6 +39,15 @@ icon = "{scoop_root}/apps/Neeview/current/Neeview.exe"
 # enabled = true
 
 [[entries]]
+key = "NeoView"
+label = "Open with NeoView"
+exe = "{scoop_root}/apps/neoview/current/neoview.exe"
+scope = ["file", "directory", "background"]
+args = ["%1"]
+icon = "{scoop_root}/apps/neoview/current/neoview.exe"
+# enabled = true
+
+[[entries]]
 key = "PotPlayer"
 label = "Open with PotPlayer"
 exe = "{scoop_root}/apps/potplayer/current/PotPlayerMini64.exe"
