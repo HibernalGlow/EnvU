@@ -8,6 +8,12 @@ tasks:
     cmds:
       - task --list
     silent: true
+
+  aest:
+    desc: "aest"
+    dir: "D:\\1VSCODE\\Projects\\aestivus"
+    cmds:
+      - yarn uvi
   ready:
     desc: "准备"
     cmds:
